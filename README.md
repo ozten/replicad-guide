@@ -1,5 +1,7 @@
 # replicad-guide
 
+**📖 Browse the guide: [ozten.github.io/replicad-guide](https://ozten.github.io/replicad-guide/)**
+
 A better quick reference and guide to [replicad](https://replicad.xyz) — the
 code-first CAD library. Three pages: a **2D quick reference** (sketching), a
 **3D quick reference** (making + manipulating solids), and a **full API
