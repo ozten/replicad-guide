@@ -46,7 +46,9 @@ export function accessibleSvg(
     throw new Error(`[${entryId}] visual is not an inline <svg> document`);
   }
 
-  const withRole = openTag.includes("role=")
+  // whitespace-preceded so attribute values ("role=…") and prefixed names
+  // (data-role=) don't mask the real attribute
+  const withRole = /\srole\s*=/.test(openTag)
     ? openTag
     : openTag.replace(/\s*>$/, ' role="img">');
 

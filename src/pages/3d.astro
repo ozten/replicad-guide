@@ -8,7 +8,9 @@ import manifest from "../../generated/manifest.json";
 // The manifest is produced by the render step (pnpm run render) from the same
 // records this page lists — a registered example missing from it means the
 // build steps ran out of order.
-const generated = new Map(manifest.entries.map((entry) => [entry.id, entry]));
+const generated = new Map<string, EntryData>(
+  manifest.entries.map((entry) => [entry.id, entry as EntryData]),
+);
 
 const entryFor = (id: string): EntryData => {
   const entry = generated.get(id);
@@ -17,7 +19,7 @@ const entryFor = (id: string): EntryData => {
       `[3d] example "${id}" is not in generated/manifest.json — run "pnpm run render" first`,
     );
   }
-  return entry as EntryData;
+  return entry;
 };
 
 const sections = [

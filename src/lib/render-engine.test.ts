@@ -106,6 +106,39 @@ describe("assertValidBuildResult", () => {
       ]),
     ).not.toThrow();
   });
+
+  it("falls back to a generic message when an error entry has none", () => {
+    expect(() =>
+      assertValidBuildResult("id5", [{ name: "Bad", error: true, message: null }]),
+    ).toThrow(/\[id5\].*unknown error/);
+  });
+});
+
+describe("periodic GC nudge", () => {
+  it("invokes globalThis.gc once every 10 renders when exposed", async () => {
+    const hadGc = "gc" in globalThis;
+    const originalGc = globalThis.gc;
+    let calls = 0;
+    globalThis.gc = (() => {
+      calls += 1;
+    }) as typeof globalThis.gc;
+
+    try {
+      for (let i = 0; i < 10; i += 1) {
+        await renderExample("gc-probe", CIRCLE_2D);
+      }
+      // the module-level counter may have started mid-cycle from earlier
+      // tests, so 10 renders trigger at least one and at most two nudges
+      expect(calls).toBeGreaterThanOrEqual(1);
+      expect(calls).toBeLessThanOrEqual(2);
+    } finally {
+      if (hadGc) {
+        globalThis.gc = originalGc;
+      } else {
+        delete (globalThis as Record<string, unknown>).gc;
+      }
+    }
+  });
 });
 
 describe("svgFromDrawingEntry", () => {

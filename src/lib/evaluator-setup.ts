@@ -37,6 +37,11 @@ async function boot(): Promise<EvaluatorService> {
     opencascadeModule?.default?.default ||
     opencascadeModule?.default ||
     opencascadeModule;
+  if (typeof openCascadeFactory !== "function") {
+    throw new Error(
+      "replicad-opencascadejs module shape changed — expected an emscripten factory function",
+    );
+  }
 
   setWasmUrl(require.resolve("manifold-3d/manifold.wasm"));
   const oc = await openCascadeFactory({

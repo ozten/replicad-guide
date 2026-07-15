@@ -132,6 +132,29 @@ describe("ApiEntry", () => {
     expect(codeBlock).not.toBeNull();
     expect(decodeEntities(codeBlock![1])).toBe(entry.code);
   });
+
+  it("round-trips hostile code exactly: backticks, entities, backslashes (R9)", async () => {
+    const hostile = {
+      ...entry,
+      code: [
+        "const main = () => {",
+        '  const label = `size: ${20}mm — "quoted" & <b>bold</b>`;',
+        "  const path = 'C:\\\\temp\\\\model';",
+        "  // '</code></pre> attempted breakout & &amp; double-escape",
+        "  return replicad.drawCircle(20);",
+        "};",
+      ].join("\n"),
+    };
+    const html = await container.renderToString(ApiEntry, {
+      props: { entry: hostile },
+    });
+
+    const codeBlock = html.match(
+      /data-code-block[^>]*>\s*<pre[^>]*><code[^>]*>([\s\S]*?)<\/code><\/pre>/,
+    );
+    expect(codeBlock).not.toBeNull();
+    expect(decodeEntities(codeBlock![1])).toBe(hostile.code);
+  });
 });
 
 describe("VersionBadge", () => {
@@ -156,5 +179,21 @@ describe("entry-render lints", () => {
 
   it("assertEntryPoint rejects non-string values", () => {
     expect(() => assertEntryPoint("x", undefined)).toThrow(/\[x\]/);
+  });
+
+  it("accessibleSvg keeps an existing role attribute instead of doubling it", () => {
+    const withRole = SVG.replace("<svg ", '<svg role="presentation" ');
+    const result = accessibleSvg(withRole, "Name", "some-entry");
+
+    expect(result.match(/\brole\s*=/g)).toHaveLength(1);
+    expect(result).toContain('role="presentation"');
+    expect(result).toContain("<title>Name</title>");
+  });
+
+  it("accessibleSvg is not fooled by 'role=' inside another attribute value", () => {
+    const tricky = SVG.replace("<svg ", '<svg data-note="role=decoy" ');
+    const result = accessibleSvg(tricky, "Name", "some-entry");
+
+    expect(result).toContain('role="img"');
   });
 });

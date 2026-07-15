@@ -58,6 +58,47 @@ describe("checkExamples", () => {
     );
   });
 
+  it("does not fail an example that only writes to console.warn", async () => {
+    const warnOnly: Example = {
+      ...base,
+      id: "warn-example",
+      code: `const main = () => {
+  console.warn("heads up, not an error");
+  return replicad.drawCircle(5);
+};`,
+    };
+
+    expect(await checkExamples([warnOnly])).toEqual([]);
+  });
+
+  it("attaches captured warnings as context when the example fails", async () => {
+    const warnThenThrow: Example = {
+      ...base,
+      id: "warn-then-throw",
+      code: `const main = () => {
+  console.warn("about to break");
+  throw new Error("kaboom");
+};`,
+    };
+
+    const failures = await checkExamples([warnThenThrow]);
+
+    expect(failures[0].problems.join("\n")).toMatch(
+      /console\.warn: about to break/,
+    );
+  });
+
+  it("reports per-example pass/fail through the onExample callback", async () => {
+    const seen: Array<[string, boolean]> = [];
+
+    await checkExamples([clean, throwing], (id, ok) => seen.push([id, ok]));
+
+    expect(seen).toEqual([
+      ["clean-circle", true],
+      ["throwing-example", false],
+    ]);
+  });
+
   it("reports every broken example, not just the first", async () => {
     const alsoBroken: Example = {
       ...base,

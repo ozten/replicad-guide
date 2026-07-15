@@ -24,4 +24,15 @@ describe("toStudioUrl", () => {
 
     expect(await decodeStudioUrl(await toStudioUrl(code))).toBe(code);
   });
+
+  it("round-trips code far larger than any registered example", async () => {
+    const filler = Array.from(
+      { length: 120 },
+      (_, i) => `  // step ${i}: a long explanatory comment padding the source`,
+    ).join("\n");
+    const code = `const main = () => {\n${filler}\n  return replicad.drawCircle(20);\n};`;
+
+    expect(code.length).toBeGreaterThan(4000);
+    expect(await decodeStudioUrl(await toStudioUrl(code))).toBe(code);
+  });
 });

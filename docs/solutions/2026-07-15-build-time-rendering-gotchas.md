@@ -40,6 +40,22 @@ shape is neither SVGable nor meshable are filtered out without a trace.
 Always check: non-array result, empty array, `entry.error`, and empty
 `paths` — see `assertValidBuildResult` in `src/lib/render-engine.ts`.
 
+## `--expose-gc` is an opt-in trap
+
+The render engine nudges `globalThis.gc()` every 10 examples because OCCT
+objects are freed only via FinalizationRegistry and the WASM heap grows
+monotonically. Without `node --expose-gc` the nudge is a silent no-op — the
+`render`/`check:examples` package scripts pass the flag, but any ad-hoc
+invocation (plain `tsx scripts/...`) quietly loses the protection. Fine at
+v1 scale (dozens of examples); an OOM risk at v1.1 scale (250+).
+
+## Rendering is serial by design — do not parallelize casually
+
+One evaluator, one `shapesMemory`, one shared OC virtual FS: examples must
+render strictly sequentially in one process. Worker-pool sharding (v1.1
+lever) is safe only with one evaluator **per worker process**, never
+concurrent renders against a shared evaluator.
+
 ## Projection shapes come from shapesMemory, not the result array
 
 The rendered result carries only mesh data. The real shape objects live in
