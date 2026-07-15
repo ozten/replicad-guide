@@ -1,0 +1,16 @@
+{
+  "// why": "TypeDoc runs against the pinned checkout's source (R6/R13), but the vendor tsconfig carries a stale `typedocOptions` block written for an older TypeDoc — and TypeDoc follows `extends` chains when reading it, so this shim cannot extend the vendor file. It replicates the vendor compilerOptions instead (generate-api.test.ts asserts they stay in sync with the submodule).",
+  "compilerOptions": {
+    "moduleResolution": "node",
+    "target": "es6",
+    "module": "es2015",
+    "strict": true,
+    "lib": ["es2022", "dom"],
+    "preserveSymlinks": true,
+    "sourceMap": true,
+    "skipLibCheck": true,
+    "declaration": true,
+    "allowSyntheticDefaultImports": true
+  },
+  "include": ["vendor/replicad/packages/replicad/src"]
+}

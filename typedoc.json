@@ -1,0 +1,10 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["vendor/replicad/packages/replicad/src/index.ts"],
+  "tsconfig": "tsconfig.typedoc.json",
+  "excludeInternal": true,
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "skipErrorChecking": true,
+  "logLevel": "Warn"
+}
