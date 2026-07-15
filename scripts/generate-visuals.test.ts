@@ -9,6 +9,7 @@ import { generateVisuals } from "./generate-visuals";
 const sample: Example = {
   id: "sample-circle",
   title: "Sample circle",
+  entryPoint: "drawCircle(radius) → Drawing",
   group: "test",
   commonness: "ESSENTIAL",
   code: `const main = () => {

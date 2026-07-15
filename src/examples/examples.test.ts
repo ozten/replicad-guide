@@ -9,6 +9,7 @@ import {
 const valid: Example = {
   id: "draw-circle",
   title: "Draw a circle",
+  entryPoint: "drawCircle(radius) → Drawing",
   group: "Canned shapes",
   commonness: "ESSENTIAL",
   code: `const main = () => {
@@ -57,6 +58,12 @@ describe("validateExample (the example contract)", () => {
   it("rejects non-kebab-case ids", () => {
     expect(validateExample({ ...valid, id: "DrawCircle" }).join()).toMatch(
       /kebab-case/,
+    );
+  });
+
+  it("rejects a missing entry point (R4)", () => {
+    expect(validateExample({ ...valid, entryPoint: "  " }).join()).toMatch(
+      /entryPoint is required/,
     );
   });
 });

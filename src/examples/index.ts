@@ -6,6 +6,8 @@
  * and (c) encoded into the open-in-studio link. No second copy exists, so a
  * visual can never drift from the code shown beside it.
  */
+import { examples2d } from "./2d/index";
+import { examples3d } from "./3d/index";
 
 export type Commonness = "ESSENTIAL" | "COMMON" | "OBSCURE";
 
@@ -13,6 +15,12 @@ export type Example = {
   /** Unique kebab-case identifier; names the example in build failures. */
   id: string;
   title: string;
+  /**
+   * How you obtain or call the thing (R4) — no entry may reference an object
+   * without showing how to get one. E.g. "draw() → DrawingPen" or
+   * "drawing.sketchOnPlane(plane) → Sketch".
+   */
+  entryPoint: string;
   /** Page section the example belongs to (e.g. "The pen", "Booleans"). */
   group: string;
   commonness: Commonness;
@@ -47,6 +55,9 @@ export function validateExample(example: Example): string[] {
 
   if (!KEBAB_CASE.test(example.id)) {
     errors.push(`id "${example.id}" must be kebab-case`);
+  }
+  if (!example.entryPoint?.trim()) {
+    errors.push(`[${example.id}] entryPoint is required (R4)`);
   }
   if (!DEFINES_MAIN.test(example.code)) {
     errors.push(`[${example.id}] code must define a function named "main"`);
@@ -89,5 +100,5 @@ export function lintExamples(list: Example[]): void {
   }
 }
 
-/** All registered examples. Content pages (U5/U6) contribute their records here. */
-export const examples: Example[] = [];
+/** All registered examples, aggregated from the per-page registries. */
+export const examples: Example[] = [...examples2d, ...examples3d];
