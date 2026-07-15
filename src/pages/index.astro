@@ -1,0 +1,177 @@
+---
+import { REPLICAD_VERSION_LABEL } from "../lib/replicad-version";
+
+const pages = [
+  {
+    href: "/2d",
+    title: "2D quick reference",
+    when: "You are sketching: draw() pen moves, canned shapes, and Drawing operations.",
+  },
+  {
+    href: "/3d",
+    title: "3D quick reference",
+    when: "You have a Drawing and want a solid: lift onto a plane, extrude/revolve/loft, then modify.",
+  },
+  {
+    href: "https://replicad.xyz/docs/api/",
+    title: "Full API reference",
+    when: "You need every export with its full signature. (Ships here in v1.1 — upstream TypeDoc until then.)",
+  },
+];
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>replicad guide — quick reference for code-first CAD</title>
+    <meta
+      name="description"
+      content="A fast quick reference for the replicad CAD library: entry points, inline examples, full signatures, and visuals rendered from the exact code shown."
+    />
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>replicad guide</h1>
+        <p class="tagline">
+          Fast lookup for <a href="https://replicad.xyz">replicad</a> — every entry
+          shows how you <em>obtain</em> the object, what you commonly do with it,
+          and its full signature. Visuals are rendered from the exact code shown.
+        </p>
+        <p class="badge" title="All examples and signatures are generated against this pinned version">
+          {REPLICAD_VERSION_LABEL}
+        </p>
+      </header>
+
+      <section aria-labelledby="mental-model">
+        <h2 id="mental-model">The object flow</h2>
+        <p>
+          Everything in replicad follows one flow — sketch in 2D, lift the sketch
+          onto a plane, make it solid, then modify it. Pick your page by where you
+          are in that flow.
+        </p>
+        <pre class="flow" aria-label="replicad object flow diagram"><code>   2D quick reference        │  2D → 3D bridge   │   3D quick reference
+   (sketching)               │  (top of 3D page) │   (making + manipulating)
+─────────────────────────────┼───────────────────┼──────────────────────────
+ draw()                      │                   │
+   → DrawingPen  (the pen)   │                   │
+   .lineTo/.arc/.halfEllipse │                   │
+   .close() / .done()        │                   │
+       → Drawing (2D shape)  │                   │
+         .rotate/.mirror     │                   │
+         .offset             │                   │
+         .fuse/.cut (2D)     │                   │
+         .sketchOnPlane("XZ")┼──→ Sketch ────────┼──→ .extrude(h)
+                             │   (2D on a plane) │    .revolve() / .loftWith()
+ or canned shapes:           │                   │        → Shape (Solid)
+   drawCircle/drawRectangle  │                   │          .fuse/.cut/.intersect
+   drawRoundedRectangle      │                   │          .fillet/.chamfer/.shell
+   drawPolysides/drawText    │                   │          .translate/.rotate/.mirror
+                             │                   │          Finders → pick edges/faces
+                             │                   │          .blobSTEP() / .blobSTL()</code></pre>
+      </section>
+
+      <section aria-labelledby="pages">
+        <h2 id="pages">Pick a page</h2>
+        <ul class="cards">
+          {
+            pages.map((p) => (
+              <li>
+                <a href={p.href}>
+                  <h3>{p.title}</h3>
+                  <p>{p.when}</p>
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+
+      <footer>
+        <p>
+          New to replicad? Start with the
+          <a href="https://replicad.xyz/docs/tutorial-overview">tutorial</a> — this
+          guide assumes you have done it and need fast recall. Embedding replicad in
+          your own app? See
+          <a href="https://replicad.xyz/docs/use-as-a-library/">use as a library</a>.
+        </p>
+      </footer>
+    </main>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --accent: #0e7490;
+        --muted: #6b7280;
+        --border: color-mix(in srgb, currentColor 18%, transparent);
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+        line-height: 1.55;
+      }
+      main {
+        max-width: 60rem;
+        margin: 0 auto;
+        padding: 2rem 1.25rem 4rem;
+      }
+      h1 {
+        margin-bottom: 0.25rem;
+      }
+      .tagline {
+        max-width: 44rem;
+        font-size: 1.1rem;
+      }
+      .badge {
+        display: inline-block;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 0.15rem 0.75rem;
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+      .flow {
+        overflow-x: auto;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1rem;
+        font-size: 0.8rem;
+        line-height: 1.4;
+      }
+      .cards {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+      }
+      .cards a {
+        display: block;
+        height: 100%;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1rem;
+        text-decoration: none;
+        color: inherit;
+      }
+      .cards a:hover h3 {
+        color: var(--accent);
+      }
+      .cards h3 {
+        margin: 0 0 0.5rem;
+      }
+      .cards p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+      footer {
+        margin-top: 3rem;
+        border-top: 1px solid var(--border);
+        padding-top: 1rem;
+        color: var(--muted);
+      }
+    </style>
+  </body>
+</html>

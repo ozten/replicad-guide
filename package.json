@@ -1,0 +1,32 @@
+{
+  "name": "replicad-guide",
+  "private": true,
+  "type": "module",
+  "description": "A better quick reference and guide to replicad",
+  "license": "MIT",
+  "packageManager": "pnpm@9.13.2",
+  "engines": {
+    "node": ">=20.6.0"
+  },
+  "scripts": {
+    "setup": "git submodule update --init && cd vendor/replicad && pnpm install --frozen-lockfile --filter replicad --filter replicad-evaluator --filter replicad-opencascadejs && pnpm --filter replicad build",
+    "render": "node --expose-gc --import tsx scripts/generate-visuals.ts",
+    "build": "pnpm run render && astro build",
+    "dev": "astro dev",
+    "preview": "astro preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1",
+    "manifold-3d": "3.0.1",
+    "replicad": "link:vendor/replicad/packages/replicad",
+    "replicad-evaluator": "link:vendor/replicad/packages/replicad-evaluator",
+    "replicad-opencascadejs": "link:vendor/replicad/packages/replicad-opencascadejs"
+  },
+  "devDependencies": {
+    "astro": "^5.12.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.5.0",
+    "vitest": "^3.2.0"
+  }
+}

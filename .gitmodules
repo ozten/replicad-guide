@@ -1,0 +1,3 @@
+[submodule "vendor/replicad"]
+	path = vendor/replicad
+	url = https://github.com/sgenoud/replicad.git
