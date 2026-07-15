@@ -9,6 +9,7 @@ import {
   stringifyType,
   type ApiSymbol,
   type Curation,
+  type Reflection,
   type TypedocJson,
 } from "../src/lib/api-model";
 import { referenceCuration } from "../src/reference/curation";
@@ -88,7 +89,7 @@ describe("stringifyType", () => {
 
 /* -------------------------------------------- unit: symbol extraction --- */
 
-const fixtureFunction = {
+const fixtureFunction: Reflection = {
   name: "demo",
   kind: 64,
   signatures: [
@@ -120,7 +121,7 @@ const fixtureFunction = {
   sources: [{ fileName: "draw.ts", url: "https://example.test/draw.ts#L1" }],
 };
 
-const fixtureClass = {
+const fixtureClass: Reflection = {
   name: "Widget",
   kind: 128,
   extendedTypes: [{ type: "reference", name: "Base" }],
@@ -180,7 +181,7 @@ const fixtureClass = {
 
 const fixtureJson: TypedocJson = {
   schemaVersion: "2.0",
-  children: [fixtureFunction, fixtureClass] as never,
+  children: [fixtureFunction, fixtureClass],
 };
 
 describe("extractSymbols", () => {

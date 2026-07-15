@@ -94,7 +94,7 @@ type Comment = {
   blockTags?: { tag: string; content: CommentPart[] }[];
 };
 
-type Reflection = {
+export type Reflection = {
   id?: number;
   name: string;
   kind: number;

@@ -46,6 +46,11 @@ export async function assertTsconfigShimInSync(): Promise<void> {
   const shim = JSON.parse(
     await readFile(new URL("tsconfig.typedoc.json", repoRoot), "utf8"),
   );
+  if (!vendor.compilerOptions || !shim.compilerOptions) {
+    throw new Error(
+      "tsconfig missing compilerOptions — vendor checkout incomplete or tsconfig.typedoc.json malformed",
+    );
+  }
   const vendorOptions = JSON.stringify(vendor.compilerOptions, Object.keys(vendor.compilerOptions).sort());
   const shimOptions = JSON.stringify(shim.compilerOptions, Object.keys(shim.compilerOptions).sort());
   if (vendorOptions !== shimOptions) {
@@ -57,11 +62,18 @@ export async function assertTsconfigShimInSync(): Promise<void> {
 
 /** Runs the pinned typedoc (config in typedoc.json) and returns its JSON output. */
 export async function runTypedoc(outFile: URL): Promise<TypedocJson> {
-  execFileSync("pnpm", ["exec", "typedoc", "--json", fileURLToPath(outFile)], {
-    cwd: fileURLToPath(repoRoot),
-    stdio: ["ignore", "inherit", "inherit"],
-  });
-  return JSON.parse(await readFile(outFile, "utf8"));
+  try {
+    execFileSync("pnpm", ["exec", "typedoc", "--json", fileURLToPath(outFile)], {
+      cwd: fileURLToPath(repoRoot),
+      stdio: ["ignore", "inherit", "inherit"],
+    });
+  } catch (error: any) {
+    throw new Error(
+      `typedoc failed (see its output above) — check typedoc.json and tsconfig.typedoc.json against the pinned checkout: ${error?.message || error}`,
+    );
+  }
+  // trusted cast: extractSymbols validates the parts of the schema it reads
+  return JSON.parse(await readFile(outFile, "utf8")) as TypedocJson;
 }
 
 export async function generateApi(outDir: URL): Promise<ApiManifest> {

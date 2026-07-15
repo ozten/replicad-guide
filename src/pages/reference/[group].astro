@@ -16,6 +16,8 @@ import api from "../../../generated/api.json";
 import manifest from "../../../generated/manifest.json";
 
 export function getStaticPaths() {
+  // getStaticPaths is hoisted into an isolated scope by Astro: it can see
+  // imports but not module-scope consts, so the cast repeats here on purpose
   return (api.groups as RefGroup[]).map((group) => ({
     params: { group: group.id },
     props: { group },
@@ -37,6 +39,9 @@ for (const g of groups) {
   }
 }
 
+// GeneratedEntry (manifest) is a superset of EntryData — both artifacts come
+// from the same build step, and the render step fails before writing a
+// manifest entry that is missing any of these fields
 const generated = new Map<string, EntryData>(
   manifest.entries.map((entry) => [entry.id, entry as EntryData]),
 );

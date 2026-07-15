@@ -4,7 +4,13 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import type { Example } from "../src/examples/index";
-import { cacheKey, generateVisuals, seededShuffle } from "./generate-visuals";
+import {
+  cacheKey,
+  generateVisuals,
+  generateVisualsInBatches,
+  seededShuffle,
+  type Manifest,
+} from "./generate-visuals";
 import { diffManifests } from "./check-order";
 import { syntheticCorpus } from "./check-scale";
 
@@ -17,6 +23,15 @@ const sample: Example = {
   code: `const main = () => {
   const { drawCircle } = replicad;
   return drawCircle(20);
+};`,
+};
+
+const rectangle: Example = {
+  ...sample,
+  id: "another-rectangle",
+  code: `const main = () => {
+  const { drawRectangle } = replicad;
+  return drawRectangle(10, 6);
 };`,
 };
 
@@ -118,22 +133,43 @@ describe("generateVisuals", () => {
   });
 
   it("keeps manifest entries in registry order even when rendering shuffled", async () => {
-    const other: Example = {
-      ...sample,
-      id: "another-rectangle",
-      code: `const main = () => {
-  const { drawRectangle } = replicad;
-  return drawRectangle(10, 6);
-};`,
-    };
-    const list = [sample, other];
-    const manifest = await generateVisuals(list, await tempOutDir(), {
+    const manifest = await generateVisuals([sample, rectangle], await tempOutDir(), {
       shuffleSeed: 7,
     });
     expect(manifest.entries.map((entry) => entry.id)).toEqual([
       "sample-circle",
       "another-rectangle",
     ]);
+  });
+});
+
+describe("generateVisualsInBatches", () => {
+  it("renders across recycled child processes and merges in registry order", async () => {
+    const outDir = await tempOutDir();
+    const { manifest, stats } = await generateVisualsInBatches(
+      [sample, rectangle],
+      outDir,
+      1,
+      { force: true },
+    );
+
+    expect(stats.batches).toEqual([["sample-circle"], ["another-rectangle"]]);
+    expect(stats.maxRssKb).toHaveLength(2);
+    expect(stats.maxRssKb.every((kb) => kb > 0)).toBe(true);
+    expect(manifest.entries.map((entry) => entry.id)).toEqual([
+      "sample-circle",
+      "another-rectangle",
+    ]);
+    expect(manifest.entries[0].visuals[0].svg).toContain("<path");
+  });
+
+  it("rejects a non-positive batch size instead of looping forever", async () => {
+    await expect(
+      generateVisualsInBatches([sample], await tempOutDir(), 0),
+    ).rejects.toThrow(/batch size/);
+    await expect(
+      generateVisualsInBatches([sample], await tempOutDir(), Number.NaN),
+    ).rejects.toThrow(/batch size/);
   });
 });
 
@@ -154,24 +190,23 @@ describe("seededShuffle", () => {
 });
 
 describe("diffManifests", () => {
-  const manifestWith = (kind: "2d" | "3d", svg: string) =>
-    ({
-      replicadRef: "ref",
-      replicadTag: "tag",
-      entries: [
-        {
-          id: "x",
-          title: "X",
-          entryPoint: "x()",
-          group: "g",
-          commonness: "COMMON",
-          code: "code",
-          keyHash: "k",
-          studioUrl: "different-per-run-is-fine",
-          visuals: [{ kind, name: "Shape", svg }],
-        },
-      ],
-    }) as never;
+  const manifestWith = (kind: "2d" | "3d", svg: string): Manifest => ({
+    replicadRef: "ref",
+    replicadTag: "tag",
+    entries: [
+      {
+        id: "x",
+        title: "X",
+        entryPoint: "x()",
+        group: "g",
+        commonness: "COMMON",
+        code: "code",
+        keyHash: "k",
+        studioUrl: "different-per-run-is-fine",
+        visuals: [{ kind, name: "Shape", svg }],
+      },
+    ],
+  });
 
   const svg = (body: string) => `<svg viewBox="0 0 10 10">${body}</svg>`;
 

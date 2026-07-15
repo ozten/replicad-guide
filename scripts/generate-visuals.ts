@@ -91,7 +91,15 @@ export type GenerateOptions = {
 async function readPreviousManifest(outDir: URL): Promise<Manifest | null> {
   try {
     return JSON.parse(await readFile(new URL("manifest.json", outDir), "utf8"));
-  } catch {
+  } catch (error: any) {
+    // a missing manifest is the normal first-run case; anything else
+    // (corruption, permissions) silently degrading to a full re-render
+    // deserves a trace
+    if (error?.code !== "ENOENT") {
+      console.warn(
+        `previous manifest unreadable (${error?.message}) — rendering everything fresh`,
+      );
+    }
     return null;
   }
 }
@@ -172,12 +180,26 @@ export type BatchStats = {
 };
 
 const scriptPath = fileURLToPath(import.meta.url);
+const repoRoot = fileURLToPath(new URL("../", import.meta.url));
+
+/**
+ * Node flags for child renders. Inherits the parent's flags but ensures the
+ * two load-bearing ones are present even when the parent lacks them (vitest
+ * workers, ad-hoc `tsx scripts/...` runs): without tsx the child cannot
+ * parse this script, and without --expose-gc its GC nudge is a silent no-op.
+ */
+function childExecArgv(): string[] {
+  const argv = [...process.execArgv];
+  if (!argv.some((arg) => arg.includes("tsx"))) argv.push("--import", "tsx");
+  if (!argv.includes("--expose-gc")) argv.push("--expose-gc");
+  return argv;
+}
 
 /**
  * Renders `list` across sequential child processes of at most `batchSize`
  * examples (the recycling backstop: each child's WASM heap dies with it),
  * merging child manifests with cache hits into one manifest in registry
- * order. Children run with this process's node flags (--expose-gc, tsx).
+ * order.
  */
 export async function generateVisualsInBatches(
   list: Example[],
@@ -185,6 +207,11 @@ export async function generateVisualsInBatches(
   batchSize: number,
   options: GenerateOptions = {},
 ): Promise<{ manifest: Manifest; stats: BatchStats }> {
+  if (!Number.isInteger(batchSize) || batchSize < 1) {
+    throw new Error(
+      `invalid batch size ${batchSize} — must be a positive integer`,
+    );
+  }
   lintExamples(list);
 
   const previous = options.force ? null : await readPreviousManifest(outDir);
@@ -222,36 +249,45 @@ export async function generateVisualsInBatches(
 
   for (const batch of batches) {
     const childDir = await mkdtemp(join(tmpdir(), "render-batch-"));
+    // failures must name the examples (the child's own stderr is inherited,
+    // but the batch context lives only here)
+    const batchIds = batch.map((example) => example.id).join(", ");
     try {
       // full records go via file — the batch may be a synthetic corpus that
       // is not in the registry (check-scale), so ids alone cannot name it
       const batchFile = join(childDir, "batch.json");
       await writeFile(batchFile, JSON.stringify(batch));
-      // sequential on purpose: one evaluator per process, never concurrent
-      execFileSync(
-        process.execPath,
-        [
-          ...process.execArgv,
-          scriptPath,
-          "--force",
-          "--out",
-          childDir,
-          "--examples",
-          batchFile,
-        ],
-        { stdio: ["ignore", "inherit", "inherit"] },
-      );
-      const childManifest: Manifest = JSON.parse(
-        await readFile(join(childDir, "manifest.json"), "utf8"),
-      );
-      for (const entry of childManifest.entries) {
-        options.onExample?.(entry.id, "render");
-        rendered.set(entry.id, entry);
+      try {
+        // sequential on purpose: one evaluator per process, never concurrent
+        execFileSync(
+          process.execPath,
+          [
+            ...childExecArgv(),
+            scriptPath,
+            "--force",
+            "--out",
+            childDir,
+            "--examples",
+            batchFile,
+          ],
+          { cwd: repoRoot, stdio: ["ignore", "inherit", "inherit"] },
+        );
+        const childManifest: Manifest = JSON.parse(
+          await readFile(join(childDir, "manifest.json"), "utf8"),
+        );
+        for (const entry of childManifest.entries) {
+          options.onExample?.(entry.id, "render");
+          rendered.set(entry.id, entry);
+        }
+        const childStats = JSON.parse(
+          await readFile(join(childDir, "stats.json"), "utf8"),
+        );
+        stats.maxRssKb.push(childStats.maxRssKb);
+      } catch (error: any) {
+        throw new Error(
+          `child render process failed for batch [${batchIds}]: ${error?.message || error}`,
+        );
       }
-      const childStats = JSON.parse(
-        await readFile(join(childDir, "stats.json"), "utf8"),
-      );
-      stats.maxRssKb.push(childStats.maxRssKb);
     } finally {
       await rm(childDir, { recursive: true, force: true });
     }
@@ -292,6 +328,17 @@ function argValue(argv: string[], flag: string): string | undefined {
   return index >= 0 ? argv[index + 1] : undefined;
 }
 
+/** Loud numeric-arg parsing: a typo'd flag must never silently change modes. */
+function intArg(raw: string, flag: string, minimum: number): number {
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < minimum) {
+    throw new Error(
+      `${flag} must be an integer >= ${minimum}, got "${raw}"`,
+    );
+  }
+  return value;
+}
+
 const isMainModule =
   process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
 
@@ -299,14 +346,22 @@ if (isMainModule) {
   const argv = process.argv.slice(2);
   const force = argv.includes("--force");
   const shuffleRaw = argValue(argv, "--shuffle-seed");
-  const shuffleSeed = shuffleRaw === undefined ? undefined : Number(shuffleRaw);
+  const shuffleSeed =
+    shuffleRaw === undefined
+      ? undefined
+      : intArg(shuffleRaw, "--shuffle-seed", 0);
   const outArg = argValue(argv, "--out");
+  if (outArg !== undefined && outArg.trim() === "") {
+    throw new Error("--out must not be empty");
+  }
   const outDir = outArg
     ? pathToFileURL(outArg.endsWith("/") ? outArg : `${outArg}/`)
     : new URL("../generated/", import.meta.url);
   const idsArg = argValue(argv, "--ids");
-  const batchSize = Number(
-    argValue(argv, "--batch-size") ?? process.env.RENDER_BATCH_SIZE ?? 100,
+  const batchSize = intArg(
+    String(argValue(argv, "--batch-size") ?? process.env.RENDER_BATCH_SIZE ?? 100),
+    "--batch-size",
+    1,
   );
 
   const examplesFile = argValue(argv, "--examples");

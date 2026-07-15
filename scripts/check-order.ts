@@ -23,6 +23,10 @@ const generateScript = fileURLToPath(
 
 async function renderInFreshProcess(shuffleSeed?: number): Promise<Manifest> {
   const outDir = await mkdtemp(join(tmpdir(), "check-order-"));
+  const passName =
+    shuffleSeed === undefined
+      ? "registry order"
+      : `shuffled order (seed ${shuffleSeed})`;
   try {
     execFileSync(
       process.execPath,
@@ -42,6 +46,10 @@ async function renderInFreshProcess(shuffleSeed?: number): Promise<Manifest> {
       { stdio: ["ignore", "inherit", "inherit"] },
     );
     return JSON.parse(await readFile(join(outDir, "manifest.json"), "utf8"));
+  } catch (error: any) {
+    throw new Error(
+      `check-order render pass (${passName}) failed: ${error?.message || error}`,
+    );
   } finally {
     await rm(outDir, { recursive: true, force: true });
   }
@@ -62,7 +70,8 @@ export function geometryFingerprint(svg: string): string {
   const viewbox = svg.match(/viewBox="([^"]*)"/)?.[1] ?? "";
   const numbers = new Set<string>();
   for (const path of svg.matchAll(/\bd="([^"]*)"/g)) {
-    for (const value of path[1].match(/-?\d+(?:\.\d+)?(?:e-?\d+)?/gi) ?? []) {
+    // covers leading-decimal SVG numbers (".5") as well as "0.5"
+    for (const value of path[1].match(/-?(?:\d+\.?\d*|\.\d+)(?:e-?\d+)?/gi) ?? []) {
       numbers.add(Number(value).toFixed(6));
     }
   }
