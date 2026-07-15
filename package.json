@@ -13,6 +13,8 @@
     "render": "node --expose-gc --import tsx scripts/generate-visuals.ts",
     "generate:api": "tsx scripts/generate-api.ts",
     "check:examples": "node --expose-gc --import tsx scripts/check-examples.ts",
+    "check:order": "node --expose-gc --import tsx scripts/check-order.ts",
+    "check:scale": "node --expose-gc --import tsx scripts/check-scale.ts",
     "build": "pnpm run render && pnpm run generate:api && astro build",
     "dev": "astro dev",
     "preview": "astro preview",

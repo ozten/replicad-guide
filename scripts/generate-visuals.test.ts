@@ -4,7 +4,9 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import type { Example } from "../src/examples/index";
-import { generateVisuals } from "./generate-visuals";
+import { cacheKey, generateVisuals, seededShuffle } from "./generate-visuals";
+import { diffManifests } from "./check-order";
+import { syntheticCorpus } from "./check-scale";
 
 const sample: Example = {
   id: "sample-circle",
@@ -74,5 +76,145 @@ describe("generateVisuals", () => {
     await expect(
       generateVisuals([noMain], await tempOutDir()),
     ).rejects.toThrow(/no-main.*main/);
+  });
+
+  it("reuses cached entries on an unchanged re-run and re-renders on code change (v1.1 cache)", async () => {
+    const outDir = await tempOutDir();
+    const first = await generateVisuals([sample], outDir);
+    expect(first.entries[0].keyHash).toBe(cacheKey(sample));
+
+    const actions: string[] = [];
+    const second = await generateVisuals([sample], outDir, {
+      onExample: (_id, action) => actions.push(action),
+    });
+    expect(actions).toEqual(["cache"]);
+    expect(second.entries[0].visuals).toEqual(first.entries[0].visuals);
+
+    const changed: Example = {
+      ...sample,
+      code: `const main = () => {
+  const { drawCircle } = replicad;
+  return drawCircle(30);
+};`,
+    };
+    actions.length = 0;
+    const third = await generateVisuals([changed], outDir, {
+      onExample: (_id, action) => actions.push(action),
+    });
+    expect(actions).toEqual(["render"]);
+    expect(third.entries[0].keyHash).not.toBe(first.entries[0].keyHash);
+  });
+
+  it("re-renders everything under force", async () => {
+    const outDir = await tempOutDir();
+    await generateVisuals([sample], outDir);
+
+    const actions: string[] = [];
+    await generateVisuals([sample], outDir, {
+      force: true,
+      onExample: (_id, action) => actions.push(action),
+    });
+    expect(actions).toEqual(["render"]);
+  });
+
+  it("keeps manifest entries in registry order even when rendering shuffled", async () => {
+    const other: Example = {
+      ...sample,
+      id: "another-rectangle",
+      code: `const main = () => {
+  const { drawRectangle } = replicad;
+  return drawRectangle(10, 6);
+};`,
+    };
+    const list = [sample, other];
+    const manifest = await generateVisuals(list, await tempOutDir(), {
+      shuffleSeed: 7,
+    });
+    expect(manifest.entries.map((entry) => entry.id)).toEqual([
+      "sample-circle",
+      "another-rectangle",
+    ]);
+  });
+});
+
+describe("seededShuffle", () => {
+  const items = ["a", "b", "c", "d", "e", "f", "g", "h"];
+
+  it("is deterministic per seed and does not mutate its input", () => {
+    const one = seededShuffle(items, 42);
+    const two = seededShuffle(items, 42);
+    expect(one).toEqual(two);
+    expect(items).toEqual(["a", "b", "c", "d", "e", "f", "g", "h"]);
+    expect([...one].sort()).toEqual([...items].sort());
+  });
+
+  it("actually reorders (a shuffle that never shuffles would gut the leakage check)", () => {
+    expect(seededShuffle(items, 1).join("")).not.toBe(items.join(""));
+  });
+});
+
+describe("diffManifests", () => {
+  const manifestWith = (kind: "2d" | "3d", svg: string) =>
+    ({
+      replicadRef: "ref",
+      replicadTag: "tag",
+      entries: [
+        {
+          id: "x",
+          title: "X",
+          entryPoint: "x()",
+          group: "g",
+          commonness: "COMMON",
+          code: "code",
+          keyHash: "k",
+          studioUrl: "different-per-run-is-fine",
+          visuals: [{ kind, name: "Shape", svg }],
+        },
+      ],
+    }) as never;
+
+  const svg = (body: string) => `<svg viewBox="0 0 10 10">${body}</svg>`;
+
+  it("passes identical output and ignores studio URLs", () => {
+    expect(
+      diffManifests(
+        manifestWith("2d", svg('<path d="M 0 0 L 1 1" />')),
+        manifestWith("2d", svg('<path d="M 0 0 L 1 1" />')),
+      ),
+    ).toEqual([]);
+  });
+
+  it("flags byte differences on 2D visuals (analytic output must be stable)", () => {
+    expect(
+      diffManifests(
+        manifestWith("2d", svg('<path d="M 0 0 L 1 1" />')),
+        manifestWith("2d", svg('<path d="M 0 0 L 1 2" />')),
+      ),
+    ).toEqual(["x: visual 0 geometry differs between render orders"]);
+  });
+
+  it("tolerates 3D path re-segmentation but flags real geometry differences", () => {
+    // same vertices, split into two paths — OCCT HLR segmentation jitter
+    const merged = manifestWith("3d", svg('<path d="M 0 0 L 1 1 L 2 0" />'));
+    const split = manifestWith(
+      "3d",
+      svg('<path d="M 0 0 L 1 1" /><path d="M 1 1 L 2 0" />'),
+    );
+    expect(diffManifests(merged, split)).toEqual([]);
+
+    const moved = manifestWith("3d", svg('<path d="M 0 0 L 1 1 L 3 0" />'));
+    expect(diffManifests(merged, moved)).toEqual([
+      "x: visual 0 geometry differs between render orders",
+    ]);
+  });
+});
+
+describe("syntheticCorpus", () => {
+  it("produces the requested size with unique ids and unique code", () => {
+    const corpus = syntheticCorpus(300);
+    expect(corpus).toHaveLength(300);
+    expect(new Set(corpus.map((example) => example.id)).size).toBe(300);
+    // unique code strings — the cache must not be able to shortcut the scale test
+    expect(new Set(corpus.map((example) => example.code)).size).toBe(300);
   });
 });

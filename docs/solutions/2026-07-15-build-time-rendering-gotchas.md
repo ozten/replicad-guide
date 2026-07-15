@@ -56,6 +56,19 @@ render strictly sequentially in one process. Worker-pool sharding (v1.1
 lever) is safe only with one evaluator **per worker process**, never
 concurrent renders against a shared evaluator.
 
+## HLR projection SVGs are not byte-deterministic across render orders
+
+OCCT's hidden-line removal iterates pointer-keyed structures, so the path
+*segmentation* of a projection SVG depends on the heap layout left behind by
+previously rendered examples (observed on the `shell` example: 37 paths in
+both orders, same vertices, different grouping — visually identical). Solo
+re-renders in fresh processes ARE byte-identical; only the predecessors
+change the outcome. Consequences: the shuffled-order leakage check
+(`scripts/check-order.ts`) compares 2D visuals byte-exact but 3D projections
+by a geometry fingerprint (viewbox + deduplicated numeric set of the path
+data), and a cached 3D SVG may legitimately differ in bytes from what a
+fresh render would emit.
+
 ## Projection shapes come from shapesMemory, not the result array
 
 The rendered result carries only mesh data. The real shape objects live in
