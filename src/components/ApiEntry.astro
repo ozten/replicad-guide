@@ -1,0 +1,278 @@
+---
+import { accessibleSvg, assertEntryPoint } from "../lib/entry-render";
+
+export type EntryVisual = { kind: "2d" | "3d"; name: string; svg: string };
+
+/** Shape of one generated entry (see scripts/generate-visuals.ts). */
+export type EntryData = {
+  id: string;
+  title: string;
+  /** How you obtain or call the thing (R4) — required for every entry. */
+  entryPoint: string;
+  group: string;
+  commonness: "ESSENTIAL" | "COMMON" | "OBSCURE";
+  code: string;
+  studioUrl?: string;
+  visuals?: EntryVisual[];
+};
+
+interface Props {
+  entry: EntryData;
+  /** Full call signature — generated from source in v1.1 (U8); optional until then. */
+  signature?: string;
+}
+
+const { entry, signature } = Astro.props;
+
+assertEntryPoint(entry.id, entry.entryPoint);
+
+const visuals = (entry.visuals ?? []).map((visual) => ({
+  ...visual,
+  svg: accessibleSvg(visual.svg, `${entry.title} — ${visual.name}`, entry.id),
+}));
+// Deemphasized but always visible (R3): anchors and Ctrl-F must still reach it.
+const isObscure = entry.commonness === "OBSCURE";
+// One code+visual pair per visual; entries with no visual keep the code block
+// and omit the visual slot cleanly.
+const pairs = visuals.length > 0 ? visuals : [null];
+---
+
+<article
+  class:list={["api-entry", { obscure: isObscure }]}
+  id={entry.id}
+  data-entry
+  data-commonness={entry.commonness}
+>
+  <header class="entry-header">
+    <h3><a href={`#${entry.id}`}>{entry.title}</a></h3>
+    <span class:list={["tag", entry.commonness.toLowerCase()]}
+      >{entry.commonness.toLowerCase()}</span
+    >
+  </header>
+
+  <p class="entry-point" data-entry-point>
+    <code set:text={entry.entryPoint} />
+  </p>
+
+  {
+    signature && (
+      <pre
+        class="signature"
+        data-signature
+      ><code set:text={signature} /></pre>
+    )
+  }
+
+  {
+    isObscure && (
+      <p class="obscure-note">
+        Rarely needed — details in the{" "}
+        <a href="https://replicad.xyz/docs/api/">full API reference</a>.
+      </p>
+    )
+  }
+
+  {
+    pairs.map((visual) => (
+      <div class:list={["pair", { "no-visual": !visual }]} data-pair>
+        <div class="code-block" data-code-block>
+          <pre><code set:text={entry.code} /></pre>
+          <button
+            type="button"
+            class="copy"
+            data-copy
+            aria-label={`Copy the ${entry.title} example`}
+          >
+            Copy
+          </button>
+        </div>
+        {visual && (
+          <figure
+            class:list={["visual", visual.kind]}
+            data-visual
+            set:html={visual.svg}
+          />
+        )}
+      </div>
+    ))
+  }
+
+  {
+    entry.studioUrl && (
+      <a
+        class="studio-link"
+        data-studio-link
+        href={entry.studioUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Open in studio ↗
+      </a>
+    )
+  }
+</article>
+
+<script>
+  // The one client-JS affordance on otherwise-static pages. The copied text
+  // is the code element's textContent — the exact example record (R9).
+  document.addEventListener("click", (event) => {
+    const target = event.target as Element | null;
+    const button = target?.closest?.("[data-copy]");
+    if (!(button instanceof HTMLButtonElement)) return;
+
+    const code = button
+      .closest("[data-code-block]")
+      ?.querySelector("code")?.textContent;
+    if (code == null) return;
+
+    navigator.clipboard.writeText(code).then(() => {
+      button.textContent = "Copied!";
+      button.classList.add("copied");
+      setTimeout(() => {
+        button.textContent = "Copy";
+        button.classList.remove("copied");
+      }, 1500);
+    });
+  });
+</script>
+
+<style>
+  .api-entry {
+    border: 1px solid var(--border, color-mix(in srgb, currentColor 18%, transparent));
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin: 1.25rem 0;
+  }
+  .entry-header {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .entry-header h3 {
+    margin: 0;
+  }
+  .entry-header a {
+    color: inherit;
+    text-decoration: none;
+  }
+  .entry-header a:hover {
+    color: var(--accent, #0e7490);
+  }
+  .tag {
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-radius: 999px;
+    padding: 0.1rem 0.6rem;
+    border: 1px solid var(--border, color-mix(in srgb, currentColor 18%, transparent));
+    color: var(--muted, #6b7280);
+  }
+  .tag.essential {
+    color: var(--accent, #0e7490);
+    border-color: currentColor;
+  }
+  .entry-point {
+    margin: 0.35rem 0 0.75rem;
+    color: var(--muted, #6b7280);
+  }
+  .entry-point code {
+    color: inherit;
+  }
+  .signature {
+    border: 1px solid var(--border, color-mix(in srgb, currentColor 18%, transparent));
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    overflow-x: auto;
+  }
+  .obscure-note {
+    font-size: 0.85rem;
+    color: var(--muted, #6b7280);
+    margin: 0.25rem 0 0.5rem;
+  }
+  .pair {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 16rem);
+    gap: 1rem;
+    align-items: start;
+    margin: 0.75rem 0;
+  }
+  .pair.no-visual {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .code-block {
+    position: relative;
+    min-width: 0;
+  }
+  .code-block pre {
+    margin: 0;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    background: color-mix(in srgb, currentColor 6%, transparent);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    overflow-x: auto;
+  }
+  .copy {
+    position: absolute;
+    top: 0.4rem;
+    right: 0.4rem;
+    font-size: 0.72rem;
+    border: 1px solid var(--border, color-mix(in srgb, currentColor 18%, transparent));
+    border-radius: 5px;
+    background: transparent;
+    color: var(--muted, #6b7280);
+    padding: 0.15rem 0.5rem;
+    cursor: pointer;
+  }
+  .copy:hover,
+  .copy.copied {
+    color: var(--accent, #0e7490);
+    border-color: currentColor;
+  }
+  .visual {
+    margin: 0;
+    min-width: 0;
+  }
+  .visual :global(svg) {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 14rem;
+  }
+  /* projections/drawings are drawn with black strokes; keep them legible in dark mode */
+  @media (prefers-color-scheme: dark) {
+    .visual {
+      background: #fff;
+      border-radius: 6px;
+      padding: 0.5rem;
+    }
+  }
+  .studio-link {
+    font-size: 0.85rem;
+    color: var(--accent, #0e7490);
+    text-decoration: none;
+  }
+  .studio-link:hover {
+    text-decoration: underline;
+  }
+
+  /* Deemphasized but present in the DOM (R3) */
+  .api-entry.obscure {
+    padding: 0.6rem 1.25rem;
+    opacity: 0.75;
+  }
+  .api-entry.obscure .entry-header h3 {
+    font-size: 1rem;
+  }
+  .api-entry.obscure pre {
+    font-size: 0.8rem;
+  }
+
+  @media (max-width: 860px) {
+    .pair {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>

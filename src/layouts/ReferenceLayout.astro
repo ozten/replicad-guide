@@ -1,0 +1,207 @@
+---
+import VersionBadge from "../components/VersionBadge.astro";
+
+export type Section = { id: string; title: string };
+
+interface Props {
+  title: string;
+  description?: string;
+  /** In-page sections, rendered as the sticky TOC / section nav. */
+  sections?: Section[];
+}
+
+const { title, description, sections = [] } = Astro.props;
+
+const nav = [
+  { href: "/", label: "replicad guide" },
+  { href: "/2d", label: "2D quick ref" },
+  { href: "/3d", label: "3D quick ref" },
+  { href: "https://replicad.xyz/docs/api/", label: "Full API ↗" },
+];
+const currentPath = Astro.url.pathname.replace(/\/$/, "") || "/";
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} — replicad guide</title>
+    {description && <meta name="description" content={description} />}
+  </head>
+  <body>
+    <header class="site-header">
+      <nav class="global-nav" aria-label="Site">
+        {
+          nav.map((item) => (
+            <a
+              href={item.href}
+              aria-current={item.href === currentPath ? "page" : undefined}
+            >
+              {item.label}
+            </a>
+          ))
+        }
+      </nav>
+      <VersionBadge />
+    </header>
+
+    <div class:list={["page", { "with-nav": sections.length > 0 }]}>
+      {
+        sections.length > 0 && (
+          <nav class="section-nav" aria-label="On this page">
+            <ul>
+              {sections.map((section) => (
+                <li>
+                  <a href={`#${section.id}`}>{section.title}</a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        )
+      }
+      <main>
+        <h1>{title}</h1>
+        <slot />
+      </main>
+    </div>
+
+    <footer class="site-footer">
+      <p>
+        Complements the
+        <a href="https://replicad.xyz/docs/tutorial-overview">tutorial</a> — start
+        there if you're new. Embedding replicad?
+        <a href="https://replicad.xyz/docs/use-as-a-library/">Use as a library</a>.
+      </p>
+      <VersionBadge />
+    </footer>
+  </body>
+</html>
+
+<style is:global>
+  :root {
+    color-scheme: light dark;
+    --accent: #0e7490;
+    --muted: #6b7280;
+    --border: color-mix(in srgb, currentColor 18%, transparent);
+  }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    line-height: 1.55;
+  }
+  /* Wide code and signatures scroll inside their block, never the page. */
+  pre {
+    overflow-x: auto;
+  }
+</style>
+
+<style>
+  .site-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .global-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.1rem;
+  }
+  .global-nav a {
+    text-decoration: none;
+    color: inherit;
+  }
+  .global-nav a:first-child {
+    font-weight: 700;
+  }
+  .global-nav a:hover {
+    color: var(--accent);
+  }
+  .global-nav a[aria-current="page"] {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .page {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: 1.5rem 1.25rem 4rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem;
+  }
+  .page.with-nav {
+    grid-template-columns: 13rem minmax(0, 1fr);
+  }
+
+  .section-nav {
+    position: sticky;
+    top: 1rem;
+    align-self: start;
+    font-size: 0.9rem;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+  }
+  .section-nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.4rem;
+  }
+  .section-nav a {
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .section-nav a:hover {
+    color: var(--accent);
+  }
+
+  main {
+    min-width: 0;
+  }
+  main h1 {
+    margin-top: 0;
+  }
+
+  .site-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    border-top: 1px solid var(--border);
+    padding: 1rem 1.25rem 2rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  .site-footer a {
+    color: inherit;
+  }
+
+  /* One primary breakpoint: the section nav collapses into a top menu and
+     code+visual pairs stack (handled in ApiEntry). */
+  @media (max-width: 860px) {
+    .page.with-nav {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 1rem;
+    }
+    .section-nav {
+      position: static;
+      max-height: none;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.75rem;
+    }
+    .section-nav ul {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem 1rem;
+    }
+  }
+</style>

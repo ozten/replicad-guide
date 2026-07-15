@@ -1,0 +1,21 @@
+---
+import { REPLICAD_VERSION_LABEL } from "../lib/replicad-version";
+---
+
+<span
+  class="version-badge"
+  title="All examples and signatures are generated against this pinned version"
+  >{REPLICAD_VERSION_LABEL}</span
+>
+
+<style>
+  .version-badge {
+    display: inline-block;
+    border: 1px solid var(--border, color-mix(in srgb, currentColor 18%, transparent));
+    border-radius: 999px;
+    padding: 0.1rem 0.7rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    color: var(--muted, #6b7280);
+  }
+</style>

@@ -1,0 +1,81 @@
+---
+// Terminology matches replicad's own usage (R11) — one line per object so a
+// reader always knows which object a section is about.
+const terms = [
+  {
+    term: "DrawingPen",
+    def: "What draw() returns — chain segment calls (.lineTo, .arc, …) and finish with .close() or .done() to get a Drawing.",
+  },
+  {
+    term: "Drawing",
+    def: "A finished 2D shape. Transform it (.rotate, .mirror, .offset), combine it (.fuse, .cut), or lift it into 3D with .sketchOnPlane().",
+  },
+  {
+    term: "Blueprint",
+    def: "The low-level 2D curve container inside a Drawing. You rarely touch it directly — Drawing wraps it.",
+  },
+  {
+    term: "Sketch",
+    def: "A Drawing placed on a plane in 3D space, ready to become a solid with .extrude(), .revolve(), or .loftWith().",
+  },
+  {
+    term: "Shape",
+    def: "A 3D object (usually a Solid). Supports booleans (.fuse, .cut, .intersect), .fillet/.chamfer/.shell, transforms, and export.",
+  },
+  {
+    term: "Plane",
+    def: 'A 2D coordinate system positioned in 3D — named ("XY", "XZ", …) or built with makePlane(). Sketches live on planes.',
+  },
+  {
+    term: "Finder",
+    def: 'A query for selecting faces or edges of a shape, e.g. new FaceFinder().inPlane("XY", 5) — used for fillets, chamfers, and highlights.',
+  },
+];
+---
+
+<section class="glossary" aria-labelledby="glossary-title" id="glossary">
+  <h2 id="glossary-title">Glossary</h2>
+  <dl>
+    {
+      terms.map(({ term, def }) => (
+        <div class="row">
+          <dt>
+            <code>{term}</code>
+          </dt>
+          <dd>{def}</dd>
+        </div>
+      ))
+    }
+  </dl>
+</section>
+
+<style>
+  .glossary {
+    margin-top: 3rem;
+    border-top: 1px solid var(--border, color-mix(in srgb, currentColor 18%, transparent));
+    padding-top: 1rem;
+  }
+  dl {
+    display: grid;
+    gap: 0.6rem;
+    margin: 0;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 8rem minmax(0, 1fr);
+    gap: 1rem;
+  }
+  dt code {
+    font-weight: 600;
+  }
+  dd {
+    margin: 0;
+    color: var(--muted, #6b7280);
+  }
+  @media (max-width: 860px) {
+    .row {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0.15rem;
+    }
+  }
+</style>
