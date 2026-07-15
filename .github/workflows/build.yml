@@ -1,10 +1,14 @@
 # Freshness gate (R9/R15): re-runs EVERY example against the pinned replicad
 # ref (vendor/replicad submodule) — an example that stops rendering fails the
-# build, naming the example. Bumping the pinned ref re-runs everything, so
-# drift from replicad is caught loudly, never silently.
+# build, naming the example — and regenerates all full-reference signatures
+# from the pinned source. Bumping the pinned ref re-runs everything, so drift
+# from replicad is caught loudly, never silently. check-examples never uses
+# the incremental render cache (and CI starts with an empty generated/
+# anyway), so the gate cannot be satisfied by stale artifacts.
 #
-# v1 renders all examples on every run; incremental caching, process
-# recycling, and the shuffled-order leakage check are deferred to v1.1 (U8).
+# The shuffled-order leakage check runs on every build (two fresh-process
+# renders, ~35s). The 300-example RSS scale gate (check:scale) is heavier
+# and runs on workflow_dispatch only.
 name: build
 
 on:
@@ -58,5 +62,12 @@ jobs:
       - name: Re-run every example against the pinned ref
         run: pnpm run check:examples
 
-      - name: Build site (render step + astro build)
+      - name: Shuffled-order leakage check
+        run: pnpm run check:order
+
+      - name: Full-reference scale gate (manual runs only)
+        if: github.event_name == 'workflow_dispatch'
+        run: pnpm run check:scale
+
+      - name: Build site (render + generate:api + astro build)
         run: pnpm run build
