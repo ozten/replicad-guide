@@ -166,7 +166,7 @@ graph TB
 
 ---
 
-- [ ] **Unit 1: Scaffold site + pin replicad checkout**
+- [x] **Unit 1: Scaffold site + pin replicad checkout**
 
 **Goal:** A buildable Astro site wired to a pinned `../replicad` checkout, with repo structure.
 
@@ -194,7 +194,7 @@ graph TB
 
 ---
 
-- [ ] **Unit 2: Build-time render engine (2D SVG + 3D projection)**
+- [x] **Unit 2: Build-time render engine (2D SVG + 3D projection)**
 
 **Goal:** A Node module that boots the evaluator once and turns an example's code into an array of SVG visuals (2D inline and/or 3D projection), with loud failure handling.
 
@@ -233,7 +233,7 @@ graph TB
 
 ---
 
-- [ ] **Unit 3: Examples-as-source-of-truth + open-in-studio links**
+- [x] **Unit 3: Examples-as-source-of-truth + open-in-studio links**
 
 **Goal:** The example data model (code authored once), the render step that feeds U2 and emits per-entry visual/data assets, and the studio deep-link generator.
 
@@ -269,7 +269,7 @@ graph TB
 
 ---
 
-- [ ] **Unit 4: Per-entry component, page layout, and findability**
+- [x] **Unit 4: Per-entry component, page layout, and findability**
 
 **Goal:** The reusable entry "card" and page shell (nav, TOC/anchors, sticky section nav, version badge, glossary, cross-links, responsive).
 
@@ -308,7 +308,7 @@ graph TB
 
 ---
 
-- [ ] **Unit 5: 2D quick-reference content**
+- [x] **Unit 5: 2D quick-reference content**
 
 **Goal:** The curated 2D page — `draw()` pen, canned `drawX` shapes, `Drawing` ops — ordered common → obscure, each entry with entry point + example(s), answering the motivating questions (half circle, rotate a drawing).
 
@@ -335,7 +335,7 @@ graph TB
 
 ---
 
-- [ ] **Unit 6: 3D quick-reference content**
+- [x] **Unit 6: 3D quick-reference content**
 
 **Goal:** The curated 3D page — bridge band (sketchOnPlane/planes) then make (extrude/revolve/loft) and manipulate (booleans, fillet/chamfer/shell, transforms, finders, export).
 
@@ -362,7 +362,7 @@ graph TB
 
 ---
 
-- [ ] **Unit 7: CI freshness pipeline**
+- [x] **Unit 7: CI freshness pipeline**
 
 **Goal:** CI that re-runs every example against the pinned replicad ref and fails loudly on breakage; version badge stays truthful.
 
