@@ -1,0 +1,91 @@
+---
+import ApiEntry, { type EntryData } from "../components/ApiEntry.astro";
+import Glossary from "../components/Glossary.astro";
+import ReferenceLayout from "../layouts/ReferenceLayout.astro";
+import { examples3d, groups3d } from "../examples/3d/index";
+import manifest from "../../generated/manifest.json";
+
+// The manifest is produced by the render step (pnpm run render) from the same
+// records this page lists — a registered example missing from it means the
+// build steps ran out of order.
+const generated = new Map(manifest.entries.map((entry) => [entry.id, entry]));
+
+const entryFor = (id: string): EntryData => {
+  const entry = generated.get(id);
+  if (!entry) {
+    throw new Error(
+      `[3d] example "${id}" is not in generated/manifest.json — run "pnpm run render" first`,
+    );
+  }
+  return entry as EntryData;
+};
+
+const sections = [
+  ...groups3d.map((group) => ({ id: group.id, title: group.title })),
+  { id: "glossary", title: "Glossary" },
+];
+---
+
+<ReferenceLayout
+  title="3D quick reference"
+  description="Making and manipulating solids with replicad: the 2D→3D bridge, extrude/revolve/loft, booleans, fillet/chamfer/shell, transforms, finders, and export."
+  sections={sections}
+>
+  <p>
+    Everything here follows one flow: a 2D <strong>Drawing</strong> is lifted
+    onto a plane to become a <strong>Sketch</strong>, a sketch gains depth to
+    become a <strong>Shape</strong> (solid), and shapes are combined, refined,
+    and exported. Sketch operations consume the sketch — build a new one for
+    each solid. Still sketching? Start on the
+    <a href="/2d">2D quick reference</a>.
+  </p>
+
+  {
+    groups3d.map((group) => (
+      <section id={group.id} aria-labelledby={`${group.id}-title`}>
+        <h2 id={`${group.id}-title`}>{group.title}</h2>
+        {group.id === "bridge" && (
+          <p>
+            The bridge from sketching to solids: put your drawing on a plane
+            somewhere in space. This is where the <a href="/2d">2D page</a>
+            hands over.
+          </p>
+        )}
+        {examples3d
+          .filter((example) => example.group === group.id)
+          .map((example) => (
+            <ApiEntry entry={entryFor(example.id)} />
+          ))}
+        {group.id === "rare" && (
+          <p class="more-pointer">
+            Also rarely needed: <code>draft</code> (mould draft angles),
+            <code>makeNonPlanarFace</code>, <code>makeBSplineApproximation</code>,
+            the free-function transform variants in <code>geomHelpers</code>,
+            and <code>serialize()</code>/<code>deserializeShape()</code> — all
+            covered in the
+            <a href="https://replicad.xyz/docs/api/">full API reference</a>.
+          </p>
+        )}
+      </section>
+    ))
+  }
+
+  <section id="glossary" aria-labelledby="glossary-title">
+    <h2 id="glossary-title">Glossary</h2>
+    <Glossary />
+  </section>
+</ReferenceLayout>
+
+<style>
+  section {
+    margin-top: 2.5rem;
+  }
+  section h2 {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.35rem;
+  }
+  .more-pointer {
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+</style>
