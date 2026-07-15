@@ -11,6 +11,7 @@ import ReferenceEntry, {
 import ReferenceLayout from "../../layouts/ReferenceLayout.astro";
 import type { EntryData } from "../../components/ApiEntry.astro";
 import type { RefGroup } from "../../lib/api-model";
+import { withBase } from "../../lib/base-url";
 import { examples2d } from "../../examples/2d/index";
 import api from "../../../generated/api.json";
 import manifest from "../../../generated/manifest.json";
@@ -35,7 +36,10 @@ const groups = api.groups as RefGroup[];
 const hrefFor: Record<string, string> = {};
 for (const g of groups) {
   for (const entry of g.entries) {
-    hrefFor[entry.name] = g.id === group.id ? `#${entry.name}` : `/reference/${g.id}#${entry.name}`;
+    hrefFor[entry.name] =
+      g.id === group.id
+        ? `#${entry.name}`
+        : withBase(`/reference/${g.id}#${entry.name}`);
   }
 }
 
@@ -55,7 +59,10 @@ const resolveExamples = (exampleIds: string[] | undefined, forSymbol: string) =>
         `[reference/${group.id}] ${forSymbol} embeds example "${id}" which is not in generated/manifest.json — run \`pnpm run render\``,
       );
     }
-    return { ...entry, quickRefHref: `${ids2d.has(id) ? "/2d" : "/3d"}#${id}` };
+    return {
+      ...entry,
+      quickRefHref: withBase(`${ids2d.has(id) ? "/2d" : "/3d"}#${id}`),
+    };
   });
 
 const sections = group.entries.map((entry) => ({ id: entry.name, title: entry.name }));
@@ -68,7 +75,7 @@ const otherGroups = groups.filter((g) => g.id !== group.id);
   sections={sections}
 >
   <p class="breadcrumb">
-    <a href="/reference">Full API reference</a> → {group.title}
+    <a href={withBase("/reference")}>Full API reference</a> → {group.title}
     <span class="count">{group.entries.length} exports</span>
   </p>
 
@@ -90,7 +97,7 @@ const otherGroups = groups.filter((g) => g.id !== group.id);
       {
         otherGroups.map((g) => (
           <li>
-            <a href={`/reference/${g.id}`}>{g.title}</a>
+            <a href={withBase(`/reference/${g.id}`)}>{g.title}</a>
           </li>
         ))
       }

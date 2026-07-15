@@ -1,5 +1,6 @@
 ---
 import VersionBadge from "../components/VersionBadge.astro";
+import { withBase } from "../lib/base-url";
 
 export type Section = { id: string; title: string };
 
@@ -13,14 +14,23 @@ interface Props {
 const { title, description, sections = [] } = Astro.props;
 
 const nav = [
-  { href: "/", label: "replicad guide" },
-  { href: "/2d", label: "2D quick ref" },
-  { href: "/3d", label: "3D quick ref" },
-  { href: "/reference", label: "Full API" },
+  { href: withBase("/"), label: "replicad guide" },
+  { href: withBase("/2d"), label: "2D quick ref" },
+  { href: withBase("/3d"), label: "3D quick ref" },
+  { href: withBase("/reference"), label: "Full API" },
 ];
-const currentPath = Astro.url.pathname.replace(/\/$/, "") || "/";
-const isCurrent = (href: string) =>
-  href === currentPath || (href !== "/" && currentPath.startsWith(`${href}/`));
+// pathname carries the base too, so comparisons stay symmetric once both
+// sides drop the trailing slash
+const normalize = (path: string) => path.replace(/\/$/, "") || "/";
+const home = normalize(withBase("/"));
+const currentPath = normalize(Astro.url.pathname);
+const isCurrent = (href: string) => {
+  const target = normalize(href);
+  return (
+    target === currentPath ||
+    (target !== home && currentPath.startsWith(`${target}/`))
+  );
+};
 ---
 
 <html lang="en">
@@ -102,7 +112,11 @@ const isCurrent = (href: string) =>
 <script>
   // Site-wide search (U8): fetches the static index on first use and ranks
   // with the same scoring module the tests exercise (src/lib/search-index).
+  // Index hrefs are stored base-free; the base is prefixed here, the one
+  // place that turns them into links.
   import { searchDocs, type SearchDoc } from "../lib/search-index";
+
+  const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
   const root = document.querySelector("[data-search]");
   const input = root?.querySelector<HTMLInputElement>("[data-search-input]");
@@ -114,7 +128,7 @@ const isCurrent = (href: string) =>
     let active = -1;
 
     const loadDocs = () => {
-      loading ??= fetch("/search-index.json")
+      loading ??= fetch(`${BASE}/search-index.json`)
         .then((response) => response.json())
         .then((data: SearchDoc[]) => (docs = data));
       return loading;
@@ -138,7 +152,7 @@ const isCurrent = (href: string) =>
         item.role = "option";
         item.id = `search-option-${index}`;
         const link = document.createElement("a");
-        link.href = doc.href;
+        link.href = `${BASE}${doc.href}`;
         const label = document.createElement("span");
         label.className = "result-label";
         label.textContent = doc.label;

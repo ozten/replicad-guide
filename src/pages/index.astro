@@ -1,19 +1,20 @@
 ---
 import { REPLICAD_VERSION_LABEL } from "../lib/replicad-version";
+import { withBase } from "../lib/base-url";
 
 const pages = [
   {
-    href: "/2d",
+    href: withBase("/2d"),
     title: "2D quick reference",
     when: "You are sketching: draw() pen moves, canned shapes, and Drawing operations.",
   },
   {
-    href: "/3d",
+    href: withBase("/3d"),
     title: "3D quick reference",
     when: "You have a Drawing and want a solid: lift onto a plane, extrude/revolve/loft, then modify.",
   },
   {
-    href: "/reference",
+    href: withBase("/reference"),
     title: "Full API reference",
     when: "You need every export with its full signature — grouped by concept, generated from the pinned source.",
   },

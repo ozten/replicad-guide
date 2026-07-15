@@ -2,6 +2,7 @@
 import ApiEntry, { type EntryData } from "../components/ApiEntry.astro";
 import Glossary from "../components/Glossary.astro";
 import ReferenceLayout from "../layouts/ReferenceLayout.astro";
+import { withBase } from "../lib/base-url";
 import { examples2d, groups2d } from "../examples/2d/index";
 import manifest from "../../generated/manifest.json";
 
@@ -48,7 +49,7 @@ const sections = [
   <p class="intro">
     Everything on this page happens in 2D — you finish with a
     <strong>Drawing</strong>. Entries are ordered most-common first. When your
-    Drawing is done, <a href="/3d#bridge">lift it onto a plane</a> to go 3D.
+    Drawing is done, <a href={withBase("/3d#bridge")}>lift it onto a plane</a> to go 3D.
   </p>
 
   {
@@ -66,7 +67,7 @@ const sections = [
     Also in the 2D toolbox, rarely needed: <code>drawPointsInterpolation</code>,
     <code>punchHole</code>, <code>serialize</code>/<code>deserializeDrawing</code>,
     the <code>toSVG</code> family, and the <code>lib2d</code> point utilities —
-    see the <a href="/reference/drawing">full API reference</a>.
+    see the <a href={withBase("/reference/drawing")}>full API reference</a>.
   </p>
 
   <section id="to-3d" class="bridge-band" aria-labelledby="to-3d-title">
@@ -75,7 +76,7 @@ const sections = [
       A finished Drawing becomes a <strong>Sketch</strong> the moment you lift it
       onto a plane — that Sketch is what you extrude, revolve, or loft.
     </p>
-    <a class="bridge-link" href="/3d#bridge">
+    <a class="bridge-link" href={withBase("/3d#bridge")}>
       2D → 3D bridge: <code>drawing.sketchOnPlane("XZ")</code> →
     </a>
   </section>

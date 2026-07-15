@@ -2,6 +2,7 @@ import { experimental_AstroContainer as AstroContainer } from "astro/container";
 import { beforeAll, describe, expect, it } from "vitest";
 import { REPLICAD_VERSION_LABEL } from "../lib/replicad-version";
 import { accessibleSvg, assertEntryPoint } from "../lib/entry-render";
+import { withBase } from "../lib/base-url";
 // @ts-expect-error -- .astro import is resolved by Astro's vite plugin
 import ApiEntry from "./ApiEntry.astro";
 // @ts-expect-error -- .astro import is resolved by Astro's vite plugin
@@ -120,7 +121,8 @@ describe("ApiEntry", () => {
     expect(html).toMatch(/class="[^"]*obscure/);
     expect(html).toContain('id="punch-hole"');
     expect(html).toContain("data-code-block");
-    expect(html).toContain('href="/reference"');
+    // withBase keeps the assertion valid with or without a configured base
+    expect(html).toContain(`href="${withBase("/reference")}"`);
   });
 
   it("round-trips the displayed code exactly (R9 display integrity)", async () => {

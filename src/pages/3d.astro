@@ -2,6 +2,7 @@
 import ApiEntry, { type EntryData } from "../components/ApiEntry.astro";
 import Glossary from "../components/Glossary.astro";
 import ReferenceLayout from "../layouts/ReferenceLayout.astro";
+import { withBase } from "../lib/base-url";
 import { examples3d, groups3d } from "../examples/3d/index";
 import manifest from "../../generated/manifest.json";
 
@@ -39,7 +40,7 @@ const sections = [
     become a <strong>Shape</strong> (solid), and shapes are combined, refined,
     and exported. Sketch operations consume the sketch — build a new one for
     each solid. Still sketching? Start on the
-    <a href="/2d">2D quick reference</a>.
+    <a href={withBase("/2d")}>2D quick reference</a>.
   </p>
 
   {
@@ -49,7 +50,7 @@ const sections = [
         {group.id === "bridge" && (
           <p>
             The bridge from sketching to solids: put your drawing on a plane
-            somewhere in space. This is where the <a href="/2d">2D page</a>
+            somewhere in space. This is where the <a href={withBase("/2d")}>2D page</a>
             hands over.
           </p>
         )}

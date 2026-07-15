@@ -1,6 +1,7 @@
 ---
 import CodeBlock from "./CodeBlock.astro";
 import { accessibleSvg, assertEntryPoint } from "../lib/entry-render";
+import { withBase } from "../lib/base-url";
 
 export type EntryVisual = { kind: "2d" | "3d"; name: string; svg: string };
 
@@ -68,7 +69,7 @@ const pairs = visuals.length > 0 ? visuals : [null];
     isObscure && (
       <p class="obscure-note">
         Rarely needed — details in the{" "}
-        <a href="/reference">full API reference</a>.
+        <a href={withBase("/reference")}>full API reference</a>.
       </p>
     )
   }
