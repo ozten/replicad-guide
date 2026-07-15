@@ -44,6 +44,26 @@ const isCurrent = (href: string) =>
           ))
         }
       </nav>
+      <div class="site-search" data-search>
+        <input
+          type="search"
+          placeholder="Search the API…  /"
+          aria-label="Search the API"
+          autocomplete="off"
+          role="combobox"
+          aria-expanded="false"
+          aria-controls="search-results"
+          data-search-input
+        />
+        <ul
+          class="search-results"
+          id="search-results"
+          role="listbox"
+          hidden
+          data-search-results
+        >
+        </ul>
+      </div>
       <div class="header-badge"><VersionBadge /></div>
     </header>
 
@@ -78,6 +98,112 @@ const isCurrent = (href: string) =>
     </footer>
   </body>
 </html>
+
+<script>
+  // Site-wide search (U8): fetches the static index on first use and ranks
+  // with the same scoring module the tests exercise (src/lib/search-index).
+  import { searchDocs, type SearchDoc } from "../lib/search-index";
+
+  const root = document.querySelector("[data-search]");
+  const input = root?.querySelector<HTMLInputElement>("[data-search-input]");
+  const list = root?.querySelector<HTMLUListElement>("[data-search-results]");
+
+  if (root && input && list) {
+    let docs: SearchDoc[] | null = null;
+    let loading: Promise<SearchDoc[]> | null = null;
+    let active = -1;
+
+    const loadDocs = () => {
+      loading ??= fetch("/search-index.json")
+        .then((response) => response.json())
+        .then((data: SearchDoc[]) => (docs = data));
+      return loading;
+    };
+
+    const close = () => {
+      list.hidden = true;
+      input.setAttribute("aria-expanded", "false");
+      active = -1;
+    };
+
+    const render = (results: SearchDoc[]) => {
+      list.textContent = "";
+      active = -1;
+      if (results.length === 0) {
+        close();
+        return;
+      }
+      for (const [index, doc] of results.entries()) {
+        const item = document.createElement("li");
+        item.role = "option";
+        item.id = `search-option-${index}`;
+        const link = document.createElement("a");
+        link.href = doc.href;
+        const label = document.createElement("span");
+        label.className = "result-label";
+        label.textContent = doc.label;
+        const detail = document.createElement("span");
+        detail.className = "result-detail";
+        detail.textContent = doc.detail;
+        link.append(label, detail);
+        item.append(link);
+        list.append(item);
+      }
+      list.hidden = false;
+      input.setAttribute("aria-expanded", "true");
+    };
+
+    const setActive = (next: number) => {
+      const options = [...list.querySelectorAll("li")];
+      if (options.length === 0) return;
+      active = (next + options.length) % options.length;
+      options.forEach((option, index) =>
+        option.classList.toggle("active", index === active),
+      );
+      input.setAttribute("aria-activedescendant", `search-option-${active}`);
+    };
+
+    input.addEventListener("focus", () => void loadDocs());
+    input.addEventListener("input", async () => {
+      await loadDocs();
+      render(searchDocs(docs ?? [], input.value));
+    });
+
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setActive(active + 1);
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setActive(active - 1);
+      } else if (event.key === "Enter") {
+        const chosen =
+          list.querySelectorAll("a")[active >= 0 ? active : 0];
+        if (chosen && !list.hidden) {
+          event.preventDefault();
+          window.location.href = chosen.href;
+        }
+      } else if (event.key === "Escape") {
+        close();
+        input.blur();
+      }
+    });
+
+    document.addEventListener("click", (event) => {
+      if (!root.contains(event.target as Node)) close();
+    });
+
+    // "/" focuses search from anywhere (unless already typing somewhere)
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "/" || event.ctrlKey || event.metaKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
+      if (target?.isContentEditable) return;
+      event.preventDefault();
+      input.focus();
+    });
+  }
+</script>
 
 <style is:global>
   :root {
@@ -138,6 +264,64 @@ const isCurrent = (href: string) =>
   .global-nav a[aria-current="page"] {
     color: var(--accent);
     font-weight: 600;
+  }
+
+  .site-search {
+    position: relative;
+    flex: 0 1 16rem;
+    min-width: 9rem;
+  }
+  .site-search input {
+    width: 100%;
+    font: inherit;
+    font-size: 0.9rem;
+    padding: 0.3rem 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+  }
+  .site-search input:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: -1px;
+  }
+  .search-results {
+    position: absolute;
+    top: calc(100% + 0.35rem);
+    left: 0;
+    right: 0;
+    min-width: 16rem;
+    max-height: 60vh;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0.25rem;
+    list-style: none;
+    background: Canvas;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 6px 24px color-mix(in srgb, currentColor 15%, transparent);
+    z-index: 40;
+  }
+  .search-results a {
+    display: flex;
+    flex-direction: column;
+    gap: 0.05rem;
+    padding: 0.35rem 0.6rem;
+    border-radius: 6px;
+    text-decoration: none;
+    color: inherit;
+  }
+  .search-results li.active a,
+  .search-results a:hover {
+    background: color-mix(in srgb, currentColor 8%, transparent);
+  }
+  .search-results .result-label {
+    font-family: ui-monospace, monospace;
+    font-size: 0.85rem;
+  }
+  .search-results .result-detail {
+    font-size: 0.75rem;
+    color: var(--muted);
   }
 
   .page {
