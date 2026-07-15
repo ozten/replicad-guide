@@ -1,0 +1,62 @@
+# Freshness gate (R9/R15): re-runs EVERY example against the pinned replicad
+# ref (vendor/replicad submodule) — an example that stops rendering fails the
+# build, naming the example. Bumping the pinned ref re-runs everything, so
+# drift from replicad is caught loudly, never silently.
+#
+# v1 renders all examples on every run; incremental caching, process
+# recycling, and the shuffled-order leakage check are deferred to v1.1 (U8).
+name: build
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # Memory budget: GitHub-hosted Linux runners have ~7GB RAM. The
+    # OpenCascade WASM heap lives outside Node's JS heap, so
+    # --max-old-space-size does not bound it — the example checks run under
+    # --expose-gc so the render engine's periodic global.gc() actually frees
+    # OCCT objects instead of being a silent no-op.
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Enable corepack (pnpm)
+        run: corepack enable
+
+      - name: Resolve pnpm store path
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'vendor/replicad/pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-${{ runner.os }}-
+
+      - name: Install + build the pinned replicad packages
+        run: pnpm run setup
+
+      - name: Install guide dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Unit tests
+        run: pnpm vitest run
+
+      - name: Re-run every example against the pinned ref
+        run: pnpm run check:examples
+
+      - name: Build site (render step + astro build)
+        run: pnpm run build
