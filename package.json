@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "jszip": "^3.10.1",
-    "manifold-3d": "3.0.1",
+    "manifold-3d": "3.3.2",
     "replicad": "link:vendor/replicad/packages/replicad",
     "replicad-evaluator": "link:vendor/replicad/packages/replicad-evaluator",
     "replicad-opencascadejs": "link:vendor/replicad/packages/replicad-opencascadejs"
