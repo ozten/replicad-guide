@@ -26,6 +26,21 @@ function escapeXml(text: string): string {
 }
 
 /**
+ * Renders a TypeDoc description (plain text with backtick code spans and
+ * blank-line paragraph breaks) as safe HTML. Deliberately minimal — the
+ * upstream JSDoc uses nothing richer, and a full markdown pipeline would be
+ * a place for displayed text to drift from the source.
+ */
+export function formatDocText(text: string): string {
+  const paragraphs = escapeXml(text)
+    .split(/\n\s*\n/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+    .map((paragraph) => paragraph.replace(/`([^`]+)`/g, "<code>$1</code>"));
+  return paragraphs.map((paragraph) => `<p>${paragraph}</p>`).join("");
+}
+
+/**
  * Gives an inline SVG document an accessible name: `role="img"` on the root
  * element and a `<title>` as its first child. Throws, naming the entry, when
  * the name would be empty or the document is not an inline SVG — the content

@@ -1,4 +1,5 @@
 ---
+import CodeBlock from "./CodeBlock.astro";
 import { accessibleSvg, assertEntryPoint } from "../lib/entry-render";
 
 export type EntryVisual = { kind: "2d" | "3d"; name: string; svg: string };
@@ -67,7 +68,7 @@ const pairs = visuals.length > 0 ? visuals : [null];
     isObscure && (
       <p class="obscure-note">
         Rarely needed — details in the{" "}
-        <a href="https://replicad.xyz/docs/api/">full API reference</a>.
+        <a href="/reference">full API reference</a>.
       </p>
     )
   }
@@ -75,17 +76,7 @@ const pairs = visuals.length > 0 ? visuals : [null];
   {
     pairs.map((visual) => (
       <div class:list={["pair", { "no-visual": !visual }]} data-pair>
-        <div class="code-block" data-code-block>
-          <pre><code set:text={entry.code} /></pre>
-          <button
-            type="button"
-            class="copy"
-            data-copy
-            aria-label={`Copy the ${entry.title} example`}
-          >
-            Copy
-          </button>
-        </div>
+        <CodeBlock code={entry.code} copyLabel={`Copy the ${entry.title} example`} />
         {visual && (
           <figure
             class:list={["visual", visual.kind]}
@@ -111,30 +102,6 @@ const pairs = visuals.length > 0 ? visuals : [null];
     )
   }
 </article>
-
-<script>
-  // The one client-JS affordance on otherwise-static pages. The copied text
-  // is the code element's textContent — the exact example record (R9).
-  document.addEventListener("click", (event) => {
-    const target = event.target as Element | null;
-    const button = target?.closest?.("[data-copy]");
-    if (!(button instanceof HTMLButtonElement)) return;
-
-    const code = button
-      .closest("[data-code-block]")
-      ?.querySelector("code")?.textContent;
-    if (code == null) return;
-
-    navigator.clipboard.writeText(code).then(() => {
-      button.textContent = "Copied!";
-      button.classList.add("copied");
-      setTimeout(() => {
-        button.textContent = "Copy";
-        button.classList.remove("copied");
-      }, 1500);
-    });
-  });
-</script>
 
 <style>
   .api-entry {
@@ -201,36 +168,6 @@ const pairs = visuals.length > 0 ? visuals : [null];
   .pair.no-visual {
     grid-template-columns: minmax(0, 1fr);
   }
-  .code-block {
-    position: relative;
-    min-width: 0;
-  }
-  .code-block pre {
-    margin: 0;
-    padding: 0.75rem 1rem;
-    border-radius: 6px;
-    background: color-mix(in srgb, currentColor 6%, transparent);
-    font-size: 0.85rem;
-    line-height: 1.5;
-    overflow-x: auto;
-  }
-  .copy {
-    position: absolute;
-    top: 0.4rem;
-    right: 0.4rem;
-    font-size: 0.72rem;
-    border: 1px solid var(--border, color-mix(in srgb, currentColor 18%, transparent));
-    border-radius: 5px;
-    background: transparent;
-    color: var(--muted, #6b7280);
-    padding: 0.15rem 0.5rem;
-    cursor: pointer;
-  }
-  .copy:hover,
-  .copy.copied {
-    color: var(--accent, #0e7490);
-    border-color: currentColor;
-  }
   .visual {
     margin: 0;
     min-width: 0;
@@ -266,7 +203,8 @@ const pairs = visuals.length > 0 ? visuals : [null];
   .api-entry.obscure .entry-header h3 {
     font-size: 1rem;
   }
-  .api-entry.obscure pre {
+  /* :global — the pre now lives inside the CodeBlock child component */
+  .api-entry.obscure :global(pre) {
     font-size: 0.8rem;
   }
 

@@ -1,0 +1,78 @@
+---
+/**
+ * The shared code block: displayed text is set via set:text so it round-trips
+ * to the exact source record (R9), plus the copy affordance — the one client-JS
+ * island on otherwise-static pages.
+ */
+interface Props {
+  code: string;
+  /** Accessible label for the copy button, e.g. "Copy the Fuse example". */
+  copyLabel: string;
+}
+
+const { code, copyLabel } = Astro.props;
+---
+
+<div class="code-block" data-code-block>
+  <pre><code set:text={code} /></pre>
+  <button type="button" class="copy" data-copy aria-label={copyLabel}>
+    Copy
+  </button>
+</div>
+
+<script>
+  // The copied text is the code element's textContent — the exact example
+  // record (R9). Document-level listener; Astro dedupes this script per page.
+  document.addEventListener("click", (event) => {
+    const target = event.target as Element | null;
+    const button = target?.closest?.("[data-copy]");
+    if (!(button instanceof HTMLButtonElement)) return;
+
+    const code = button
+      .closest("[data-code-block]")
+      ?.querySelector("code")?.textContent;
+    if (code == null) return;
+
+    navigator.clipboard.writeText(code).then(() => {
+      button.textContent = "Copied!";
+      button.classList.add("copied");
+      setTimeout(() => {
+        button.textContent = "Copy";
+        button.classList.remove("copied");
+      }, 1500);
+    });
+  });
+</script>
+
+<style>
+  .code-block {
+    position: relative;
+    min-width: 0;
+  }
+  .code-block pre {
+    margin: 0;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    background: color-mix(in srgb, currentColor 6%, transparent);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    overflow-x: auto;
+  }
+  .copy {
+    position: absolute;
+    top: 0.4rem;
+    right: 0.4rem;
+    font-size: 0.72rem;
+    border: 1px solid var(--border, color-mix(in srgb, currentColor 18%, transparent));
+    border-radius: 5px;
+    background: transparent;
+    color: var(--muted, #6b7280);
+    padding: 0.15rem 0.5rem;
+    cursor: pointer;
+  }
+  .copy:hover,
+  .copy.copied {
+    color: var(--accent, #0e7490);
+    border-color: currentColor;
+  }
+</style>

@@ -1,0 +1,140 @@
+---
+/**
+ * One concept group of the full API reference (U8) — every export in the
+ * group with its generated signature inline (R13). Consumes the build-time
+ * artifacts: generated/api.json (signatures, from `pnpm run generate:api`)
+ * and generated/manifest.json (example visuals, from `pnpm run render`).
+ */
+import ReferenceEntry, {
+  type EmbeddedExample,
+} from "../../components/ReferenceEntry.astro";
+import ReferenceLayout from "../../layouts/ReferenceLayout.astro";
+import type { EntryData } from "../../components/ApiEntry.astro";
+import type { RefGroup } from "../../lib/api-model";
+import { examples2d } from "../../examples/2d/index";
+import api from "../../../generated/api.json";
+import manifest from "../../../generated/manifest.json";
+
+export function getStaticPaths() {
+  return (api.groups as RefGroup[]).map((group) => ({
+    params: { group: group.id },
+    props: { group },
+  }));
+}
+
+interface Props {
+  group: RefGroup;
+}
+
+const { group } = Astro.props;
+const groups = api.groups as RefGroup[];
+
+// symbol name → href, for extends cross-links (targets may live in another group)
+const hrefFor: Record<string, string> = {};
+for (const g of groups) {
+  for (const entry of g.entries) {
+    hrefFor[entry.name] = g.id === group.id ? `#${entry.name}` : `/reference/${g.id}#${entry.name}`;
+  }
+}
+
+const generated = new Map<string, EntryData>(
+  manifest.entries.map((entry) => [entry.id, entry as EntryData]),
+);
+const ids2d = new Set(examples2d.map((example) => example.id));
+
+const resolveExamples = (exampleIds: string[] | undefined, forSymbol: string) =>
+  (exampleIds ?? []).map((id): EmbeddedExample => {
+    const entry = generated.get(id);
+    if (!entry) {
+      throw new Error(
+        `[reference/${group.id}] ${forSymbol} embeds example "${id}" which is not in generated/manifest.json — run \`pnpm run render\``,
+      );
+    }
+    return { ...entry, quickRefHref: `${ids2d.has(id) ? "/2d" : "/3d"}#${id}` };
+  });
+
+const sections = group.entries.map((entry) => ({ id: entry.name, title: entry.name }));
+const otherGroups = groups.filter((g) => g.id !== group.id);
+---
+
+<ReferenceLayout
+  title={group.title}
+  description={group.blurb ?? `replicad full API reference — ${group.title}`}
+  sections={sections}
+>
+  <p class="breadcrumb">
+    <a href="/reference">Full API reference</a> → {group.title}
+    <span class="count">{group.entries.length} exports</span>
+  </p>
+
+  {group.blurb && <p class="intro">{group.blurb}</p>}
+
+  {
+    group.entries.map((entry) => (
+      <ReferenceEntry
+        entry={entry}
+        examples={resolveExamples(entry.exampleIds, entry.name)}
+        hrefFor={hrefFor}
+      />
+    ))
+  }
+
+  <nav class="other-groups" aria-label="Other reference groups">
+    <h2>Other groups</h2>
+    <ul>
+      {
+        otherGroups.map((g) => (
+          <li>
+            <a href={`/reference/${g.id}`}>{g.title}</a>
+          </li>
+        ))
+      }
+    </ul>
+  </nav>
+</ReferenceLayout>
+
+<style>
+  .breadcrumb {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  .breadcrumb a {
+    color: inherit;
+  }
+  .count {
+    margin-left: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.05rem 0.6rem;
+    font-size: 0.8rem;
+  }
+  .intro {
+    max-width: 44rem;
+    font-size: 1.05rem;
+  }
+  .other-groups {
+    margin-top: 3rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+    font-size: 0.9rem;
+  }
+  .other-groups h2 {
+    font-size: 1rem;
+    margin: 0 0 0.5rem;
+  }
+  .other-groups ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1.25rem;
+  }
+  .other-groups a {
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .other-groups a:hover {
+    color: var(--accent);
+  }
+</style>

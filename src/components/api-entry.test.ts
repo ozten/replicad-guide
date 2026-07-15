@@ -120,7 +120,7 @@ describe("ApiEntry", () => {
     expect(html).toMatch(/class="[^"]*obscure/);
     expect(html).toContain('id="punch-hole"');
     expect(html).toContain("data-code-block");
-    expect(html).toContain("https://replicad.xyz/docs/api/");
+    expect(html).toContain('href="/reference"');
   });
 
   it("round-trips the displayed code exactly (R9 display integrity)", async () => {

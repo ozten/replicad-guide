@@ -1,0 +1,108 @@
+---
+/**
+ * Full API reference — landing page (U8): every public export of the pinned
+ * replicad, grouped by concept. Signatures are generated from source
+ * (never hand-authored, R6/R13); geometry entries embed quick-ref examples
+ * with build-rendered visuals (R14).
+ */
+import ReferenceLayout from "../../layouts/ReferenceLayout.astro";
+import type { RefGroup } from "../../lib/api-model";
+import api from "../../../generated/api.json";
+
+const groups = api.groups as RefGroup[];
+const total = groups.reduce((sum, group) => sum + group.entries.length, 0);
+---
+
+<ReferenceLayout
+  title="Full API reference"
+  description={`Every public export of replicad — ${total} entries with full signatures, grouped by concept. Generated from the pinned source.`}
+>
+  <p class="intro">
+    All {total} public exports of the pinned replicad, grouped by concept —
+    every entry shows its full signature (arguments, types, defaults) inline,
+    no click-through. Signatures are <strong>generated from the source</strong>,
+    so they cannot drift. Start from the quick refs
+    (<a href="/2d">2D</a>, <a href="/3d">3D</a>) if you want the curated
+    common path; come here when you need everything.
+  </p>
+
+  <ul class="groups">
+    {
+      groups.map((group) => (
+        <li>
+          <a href={`/reference/${group.id}`} class:list={{ legacy: group.legacy }}>
+            <h2>
+              {group.title}
+              <span class="count">{group.entries.length}</span>
+            </h2>
+            {group.blurb && <p class="blurb">{group.blurb}</p>}
+            <p class="preview">
+              {group.entries
+                .slice(0, 5)
+                .map((entry) => entry.name)
+                .join(" · ")}
+              {group.entries.length > 5 && " · …"}
+            </p>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</ReferenceLayout>
+
+<style>
+  .intro {
+    max-width: 44rem;
+    font-size: 1.05rem;
+  }
+  .groups {
+    list-style: none;
+    margin: 2rem 0 0;
+    padding: 0;
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+  }
+  .groups a {
+    display: block;
+    height: 100%;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    text-decoration: none;
+    color: inherit;
+  }
+  .groups a.legacy {
+    opacity: 0.75;
+  }
+  .groups a:hover h2 {
+    color: var(--accent);
+  }
+  .groups h2 {
+    margin: 0 0 0.4rem;
+    font-size: 1.05rem;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  .count {
+    font-size: 0.78rem;
+    font-weight: 400;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.05rem 0.55rem;
+  }
+  .blurb {
+    margin: 0 0 0.5rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  .preview {
+    margin: 0;
+    font-family: ui-monospace, monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+</style>

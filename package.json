@@ -11,8 +11,9 @@
   "scripts": {
     "setup": "git submodule update --init && cd vendor/replicad && pnpm install --frozen-lockfile --filter replicad --filter replicad-evaluator --filter replicad-opencascadejs && pnpm --filter replicad build",
     "render": "node --expose-gc --import tsx scripts/generate-visuals.ts",
+    "generate:api": "tsx scripts/generate-api.ts",
     "check:examples": "node --expose-gc --import tsx scripts/check-examples.ts",
-    "build": "pnpm run render && astro build",
+    "build": "pnpm run render && pnpm run generate:api && astro build",
     "dev": "astro dev",
     "preview": "astro preview",
     "test": "vitest run"

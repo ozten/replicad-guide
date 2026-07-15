@@ -1,0 +1,359 @@
+---
+/**
+ * One full-reference entry card (U8): name, kind, entry point (R4),
+ * generated signature with args/types/defaults inline (R6/R13),
+ * description, class members (own members; inherited ones are documented
+ * on the base class, linked), and — for curated geometry entries — the
+ * embedded quick-ref example(s) with their build-rendered visuals (R14).
+ */
+import CodeBlock from "./CodeBlock.astro";
+import type { EntryData } from "./ApiEntry.astro";
+import type { MemberDoc, RefEntry } from "../lib/api-model";
+import { accessibleSvg, formatDocText } from "../lib/entry-render";
+
+export type EmbeddedExample = EntryData & {
+  /** Anchor on the quick-ref page this example is curated on, e.g. "/3d#fuse". */
+  quickRefHref: string;
+};
+
+interface Props {
+  entry: RefEntry;
+  /** Resolved from entry.exampleIds by the page (manifest lookup). */
+  examples?: EmbeddedExample[];
+  /** symbol name → href, for cross-linking extends targets. */
+  hrefFor?: Record<string, string>;
+}
+
+const { entry, examples = [], hrefFor = {} } = Astro.props;
+
+const signatureText = [entry.signature, ...(entry.overloads ?? [])].join("\n");
+
+const memberText = (member: MemberDoc) =>
+  [
+    `${member.isStatic ? "static " : ""}${member.signature}`,
+    ...(member.overloads ?? []),
+  ].join("\n");
+
+const members = entry.members ?? [];
+// params add a row only when they say more than the signature already shows
+const describedParams = (entry.params ?? []).filter((param) => param.description);
+---
+
+<article
+  class:list={["ref-entry", { legacy: entry.legacy }]}
+  id={entry.name}
+  data-ref-entry
+  data-kind={entry.kind}
+>
+  <header class="entry-header">
+    <h3><a href={`#${entry.name}`}><code>{entry.name}</code></a></h3>
+    <span class="tag">{entry.kind}</span>
+    {entry.legacy && <span class="tag legacy-tag">legacy</span>}
+    {entry.deprecated && <span class="tag deprecated-tag">deprecated</span>}
+  </header>
+
+  {
+    entry.entryPoint && (
+      <p class="entry-point" data-entry-point>
+        <code set:text={entry.entryPoint} />
+      </p>
+    )
+  }
+
+  <pre class="signature" data-signature><code set:text={signatureText} /></pre>
+
+  {entry.description && <div class="doc" set:html={formatDocText(entry.description)} />}
+
+  {
+    describedParams.length > 0 && (
+      <dl class="params">
+        {describedParams.map((param) => (
+          <>
+            <dt>
+              <code>{param.name}</code>
+            </dt>
+            <dd set:html={formatDocText(param.description ?? "")} />
+          </>
+        ))}
+      </dl>
+    )
+  }
+
+  {entry.returns && <p class="returns" set:html={`Returns: ${formatDocText(entry.returns)}`} />}
+
+  {
+    entry.extends && entry.extends.length > 0 && (
+      <p class="extends">
+        Extends{" "}
+        {entry.extends.map((base, index) => (
+          <>
+            {index > 0 && ", "}
+            {hrefFor[base] ? (
+              <a href={hrefFor[base]}>
+                <code>{base}</code>
+              </a>
+            ) : (
+              <code>{base}</code>
+            )}
+          </>
+        ))}
+        {" — inherited members are documented there."}
+      </p>
+    )
+  }
+
+  {
+    members.length > 0 && (
+      <ul class="members">
+        {members.map((member) => (
+          <li
+            class:list={["member", { "member-deprecated": member.deprecated }]}
+            id={`${entry.name}-${member.name}`}
+          >
+            <pre class="member-sig"><code set:text={memberText(member)} /></pre>
+            {member.deprecated && <span class="tag deprecated-tag">deprecated</span>}
+            {member.description && (
+              <div class="doc member-doc" set:html={formatDocText(member.description)} />
+            )}
+          </li>
+        ))}
+      </ul>
+    )
+  }
+
+  {
+    examples.map((example) => (
+      <div class="example" data-embedded-example>
+        <p class="example-title">
+          <a href={example.quickRefHref}>{example.title}</a>
+        </p>
+        {(example.visuals ?? []).map((visual, index) => (
+          <div class:list={["pair", { "no-visual": false }]} data-pair>
+            {index === 0 ? (
+              <CodeBlock
+                code={example.code}
+                copyLabel={`Copy the ${example.title} example`}
+              />
+            ) : (
+              <div class="pair-spacer" aria-hidden="true" />
+            )}
+            <figure
+              class:list={["visual", visual.kind]}
+              data-visual
+              set:html={accessibleSvg(
+                visual.svg,
+                `${example.title} — ${visual.name}`,
+                entry.name,
+              )}
+            />
+          </div>
+        ))}
+        {example.studioUrl && (
+          <a
+            class="studio-link"
+            data-studio-link
+            href={example.studioUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Open in studio ↗
+          </a>
+        )}
+      </div>
+    ))
+  }
+
+  {
+    entry.sourceUrl && (
+      <a class="source-link" href={entry.sourceUrl} target="_blank" rel="noopener noreferrer">
+        source ↗
+      </a>
+    )
+  }
+</article>
+
+<style>
+  .ref-entry {
+    border: 1px solid var(--border, color-mix(in srgb, currentColor 18%, transparent));
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin: 1.25rem 0;
+  }
+  .ref-entry.legacy {
+    opacity: 0.8;
+  }
+  .entry-header {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .entry-header h3 {
+    margin: 0;
+    font-size: 1.05rem;
+  }
+  .entry-header a {
+    color: inherit;
+    text-decoration: none;
+  }
+  .entry-header a:hover {
+    color: var(--accent, #0e7490);
+  }
+  .tag {
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-radius: 999px;
+    padding: 0.1rem 0.6rem;
+    border: 1px solid var(--border, color-mix(in srgb, currentColor 18%, transparent));
+    color: var(--muted, #6b7280);
+  }
+  .legacy-tag,
+  .deprecated-tag {
+    color: #b45309;
+    border-color: currentColor;
+  }
+  .entry-point {
+    margin: 0.35rem 0 0.75rem;
+    color: var(--muted, #6b7280);
+  }
+  .entry-point code {
+    color: inherit;
+  }
+  .signature {
+    border: 1px solid var(--border, color-mix(in srgb, currentColor 18%, transparent));
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    overflow-x: auto;
+    margin: 0.5rem 0;
+  }
+  .doc {
+    max-width: 44rem;
+  }
+  .doc :global(p) {
+    margin: 0.5rem 0;
+  }
+  .params {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 0.25rem 1rem;
+    margin: 0.5rem 0;
+    font-size: 0.9rem;
+  }
+  .params dt {
+    font-weight: 600;
+  }
+  .params dd {
+    margin: 0;
+    color: var(--muted, #6b7280);
+  }
+  .params dd :global(p) {
+    margin: 0;
+  }
+  .returns {
+    font-size: 0.9rem;
+  }
+  .returns :global(p) {
+    display: inline;
+  }
+  .extends {
+    font-size: 0.9rem;
+    color: var(--muted, #6b7280);
+  }
+  .members {
+    list-style: none;
+    margin: 0.75rem 0 0;
+    padding: 0;
+    border-top: 1px solid var(--border, color-mix(in srgb, currentColor 18%, transparent));
+  }
+  .member {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid
+      color-mix(in srgb, currentColor 8%, transparent);
+  }
+  .member-sig {
+    margin: 0;
+    padding: 0;
+    background: none;
+    font-size: 0.83rem;
+    line-height: 1.5;
+    overflow-x: auto;
+  }
+  .member-deprecated .member-sig {
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+    opacity: 0.7;
+  }
+  .member-doc {
+    font-size: 0.9rem;
+    color: var(--muted, #6b7280);
+  }
+  .member-doc :global(p) {
+    margin: 0.25rem 0 0;
+  }
+  .example {
+    margin-top: 1rem;
+  }
+  .example-title {
+    margin: 0 0 0.25rem;
+    font-size: 0.85rem;
+    color: var(--muted, #6b7280);
+  }
+  .example-title a {
+    color: inherit;
+  }
+  .pair {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 16rem);
+    gap: 1rem;
+    align-items: start;
+    margin: 0.5rem 0;
+  }
+  .visual {
+    margin: 0;
+    min-width: 0;
+  }
+  .visual :global(svg) {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 14rem;
+  }
+  /* projections/drawings use black strokes; keep them legible in dark mode */
+  @media (prefers-color-scheme: dark) {
+    .visual {
+      background: #fff;
+      border-radius: 6px;
+      padding: 0.5rem;
+    }
+  }
+  .studio-link {
+    font-size: 0.85rem;
+    color: var(--accent, #0e7490);
+    text-decoration: none;
+  }
+  .studio-link:hover {
+    text-decoration: underline;
+  }
+  .source-link {
+    display: inline-block;
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--muted, #6b7280);
+    text-decoration: none;
+  }
+  .source-link:hover {
+    color: var(--accent, #0e7490);
+  }
+
+  @media (max-width: 860px) {
+    .pair {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .pair-spacer {
+      display: none;
+    }
+  }
+</style>
