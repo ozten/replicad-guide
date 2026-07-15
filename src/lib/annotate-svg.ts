@@ -23,9 +23,13 @@ export type AnnotationBox = {
 };
 
 export type Annotations = {
-  /** Mark [0, 0] with an axes cross labeled "0,0". */
+  /**
+   * Mark the origin: on 2D visuals an axes cross labeled "0,0", on 3D
+   * projections an x/y/z triad projected through the same camera as the
+   * shape (see project-svg.ts).
+   */
   origin?: boolean;
-  /** Axis-aligned regions, each labeled at its two defining corners. */
+  /** Axis-aligned regions, each labeled at its two defining corners. 2D only. */
   boxes?: AnnotationBox[];
 };
 
@@ -33,12 +37,15 @@ const BOX_COLOR = "#2563eb"; // blue — regions (e.g. a CornerFinder's inBox)
 const ORIGIN_COLOR = "#dc2626"; // red — the origin marker
 
 /** Label font size as a fraction of the combined extent's larger side. */
-const FONT_RATIO = 0.07;
+export const FONT_RATIO = 0.07;
 /** Estimated monospace advance per character, as a fraction of font size. */
-const CHAR_WIDTH = 0.62;
+export const CHAR_WIDTH = 0.62;
+/** Font stack for annotation labels — matches the coordinates in the code. */
+export const LABEL_FONT =
+  "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
 
 /** Compact fixed-precision number for SVG attributes ("-0" normalized). */
-const fmt = (value: number): string => {
+export const fmt = (value: number): string => {
   const rounded = Math.round(value * 100) / 100;
   return Object.is(rounded, -0) ? "0" : String(rounded);
 };
@@ -186,7 +193,7 @@ export function annotateSvg(
     fmt(extent.y1 - extent.y0 + 2 * pad),
   ].join(" ");
 
-  const group = `  <g class="annotations" stroke="none" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="${fmt(font)}">
+  const group = `  <g class="annotations" stroke="none" font-family="${LABEL_FONT}" font-size="${fmt(font)}">
     ${parts.join("\n    ")}
   </g>`;
 

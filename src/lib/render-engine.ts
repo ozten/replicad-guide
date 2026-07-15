@@ -88,8 +88,8 @@ function maybeGc() {
  * and the FIRST projectable 3D entry becomes a projection SVG (mirrors the
  * CLI's entry selection; further 3D entries are ignored).
  *
- * `annotations` overlays apply to every 2D visual; 3D projections are left
- * unannotated for now (that needs points projected through the same camera).
+ * `annotations` overlays apply to every 2D visual (origin cross + boxes) and
+ * to the 3D projection (origin triad only — boxes are 2D-only).
  */
 export async function renderExample(
   id: string,
@@ -130,7 +130,7 @@ export async function renderExample(
       visuals.push({
         kind: "3d",
         name: entry.name,
-        svg: prettyProjectionSvg(shape, "hidden"),
+        svg: prettyProjectionSvg(shape, "hidden", annotations),
       });
     }
   }

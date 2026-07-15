@@ -257,6 +257,8 @@ export const examples3d: Example[] = [
   const arm = makeBaseBox(40, 8, 6).translate(20, 0, 0);
   return arm.fuse(arm.clone().rotate(45, [0, 0, 0], [0, 0, 1]));
 };`,
+    // the triad marks [0, 0, 0] — the pivot of the rotate, on the z axis
+    annotations: { origin: true },
   },
   {
     id: "mirror",

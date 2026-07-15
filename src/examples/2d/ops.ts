@@ -13,6 +13,8 @@ export const opsExamples: Example[] = [
   // angle in degrees, counterclockwise around [0, 0] by default
   return drawRectangle(40, 15).rotate(30);
 };`,
+    // the cross marks the pivot the rotation happens around
+    annotations: { origin: true },
   },
   {
     id: "drawing-translate-mirror",
@@ -27,6 +29,8 @@ export const opsExamples: Example[] = [
   // "plane" mode reflects over the line through origin along [0, 1]
   return triangle.fuse(triangle.mirror([0, 1], [0, 0], "plane"));
 };`,
+    // the cross marks the origin the mirror line passes through
+    annotations: { origin: true },
   },
   {
     id: "drawing-booleans",
