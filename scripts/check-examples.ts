@@ -43,7 +43,7 @@ export async function checkExamples(
 
     let thrown: string | null = null;
     try {
-      await renderExample(example.id, example.code);
+      await renderExample(example.id, example.code, example.annotations);
     } catch (error: any) {
       thrown = error?.message || String(error);
     } finally {

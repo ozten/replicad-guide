@@ -11,6 +11,7 @@
  * Node-only (raw-TS evaluator import) — must run inside the standalone
  * `node --expose-gc` render step, never inside the Astro build graph.
  */
+import { annotateSvg, type Annotations } from "./annotate-svg";
 import { getEvaluator } from "./evaluator-setup";
 import { prettyProjectionSvg } from "./project-svg";
 
@@ -86,10 +87,14 @@ function maybeGc() {
  * solid plus drawProjection drawings): every 2D entry becomes an inline SVG,
  * and the FIRST projectable 3D entry becomes a projection SVG (mirrors the
  * CLI's entry selection; further 3D entries are ignored).
+ *
+ * `annotations` overlays apply to every 2D visual; 3D projections are left
+ * unannotated for now (that needs points projected through the same camera).
  */
 export async function renderExample(
   id: string,
   code: string,
+  annotations?: Annotations,
 ): Promise<Visual[]> {
   const evaluator = await getEvaluator();
   const params = (await evaluator.extractDefaultParamsFromCode(code)) || {};
@@ -105,7 +110,7 @@ export async function renderExample(
       visuals.push({
         kind: "2d",
         name: entry.name,
-        svg: svgFromDrawingEntry(id, entry),
+        svg: annotateSvg(id, svgFromDrawingEntry(id, entry), annotations),
       });
     } else if (entry.solidType !== "mesh" && !projected) {
       projected = true;

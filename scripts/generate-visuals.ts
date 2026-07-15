@@ -51,15 +51,22 @@ export type Manifest = {
  */
 const RENDER_OPTIONS_VERSION = "1";
 
-/** Cache key: same code + same pinned ref + same render options = same SVG. */
+/**
+ * Cache key: same code + same pinned ref + same render options (+ same
+ * annotations) = same SVG. Annotations are hashed only when present so
+ * unannotated entries keep their existing keys (no mass re-render).
+ */
 export function cacheKey(example: Example): string {
-  return createHash("sha256")
+  const hash = createHash("sha256")
     .update(example.code)
     .update("\0")
     .update(REPLICAD_GIT_REF)
     .update("\0")
-    .update(RENDER_OPTIONS_VERSION)
-    .digest("hex");
+    .update(RENDER_OPTIONS_VERSION);
+  if (example.annotations) {
+    hash.update("\0").update(JSON.stringify(example.annotations));
+  }
+  return hash.digest("hex");
 }
 
 /** Deterministic Fisher–Yates (mulberry32) — the leakage check's shuffle. */
@@ -132,7 +139,11 @@ export async function generateVisuals(
       continue;
     }
     try {
-      const visuals = await renderExample(example.id, example.code);
+      const visuals = await renderExample(
+        example.id,
+        example.code,
+        example.annotations,
+      );
       options.onExample?.(example.id, "render");
       results.set(example.id, {
         ...example,

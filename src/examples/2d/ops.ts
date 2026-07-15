@@ -52,6 +52,11 @@ export const opsExamples: Example[] = [
   // no filter = every corner; a CornerFinder picks some of them
   return drawRectangle(40, 20).fillet(6, (c) => c.inBox([0, -20], [30, 20]));
 };`,
+    // the blue box is the inBox region: only corners inside it get filleted
+    annotations: {
+      origin: true,
+      boxes: [{ from: [0, -20], to: [30, 20] }],
+    },
   },
   {
     id: "drawing-offset",

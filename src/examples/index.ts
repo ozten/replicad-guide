@@ -6,8 +6,11 @@
  * and (c) encoded into the open-in-studio link. No second copy exists, so a
  * visual can never drift from the code shown beside it.
  */
+import type { Annotations } from "../lib/annotate-svg";
 import { examples2d } from "./2d/index";
 import { examples3d } from "./3d/index";
+
+export type { Annotations } from "../lib/annotate-svg";
 
 export type Commonness = "ESSENTIAL" | "COMMON" | "OBSCURE";
 
@@ -30,6 +33,12 @@ export type Example = {
    * must be defined (see the contract enforced by `validateExample`).
    */
   code: string;
+  /**
+   * Optional colored overlay (origin cross, labeled region boxes) drawn on
+   * top of the example's 2D visuals at render time. Explanation, not
+   * geometry: it is not part of `code`, so the studio link is unaffected.
+   */
+  annotations?: Annotations;
 };
 
 const KEBAB_CASE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
