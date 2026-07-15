@@ -42,7 +42,7 @@ const currentPath = Astro.url.pathname.replace(/\/$/, "") || "/";
           ))
         }
       </nav>
-      <VersionBadge />
+      <div class="header-badge"><VersionBadge /></div>
     </header>
 
     <div class:list={["page", { "with-nav": sections.length > 0 }]}>
@@ -83,9 +83,14 @@ const currentPath = Astro.url.pathname.replace(/\/$/, "") || "/";
     --accent: #0e7490;
     --muted: #6b7280;
     --border: color-mix(in srgb, currentColor 18%, transparent);
+    --header-h: 3.5rem;
   }
   * {
     box-sizing: border-box;
+  }
+  /* Anchor jumps must land below the sticky header. */
+  html {
+    scroll-padding-top: calc(var(--header-h) + 0.5rem);
   }
   body {
     margin: 0;
@@ -100,11 +105,16 @@ const currentPath = Astro.url.pathname.replace(/\/$/, "") || "/";
 
 <style>
   .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: Canvas;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
     flex-wrap: wrap;
+    min-height: var(--header-h);
     padding: 0.75rem 1.25rem;
     border-bottom: 1px solid var(--border);
   }
@@ -142,10 +152,10 @@ const currentPath = Astro.url.pathname.replace(/\/$/, "") || "/";
 
   .section-nav {
     position: sticky;
-    top: 1rem;
+    top: calc(var(--header-h) + 1rem);
     align-self: start;
     font-size: 0.9rem;
-    max-height: calc(100vh - 2rem);
+    max-height: calc(100vh - var(--header-h) - 2rem);
     overflow-y: auto;
   }
   .section-nav ul {
@@ -188,6 +198,11 @@ const currentPath = Astro.url.pathname.replace(/\/$/, "") || "/";
   /* One primary breakpoint: the section nav collapses into a top menu and
      code+visual pairs stack (handled in ApiEntry). */
   @media (max-width: 860px) {
+    /* Keep the sticky header one row tall: drop the badge (still in the
+       footer, so the pinned version stays on every page). */
+    .header-badge {
+      display: none;
+    }
     .page.with-nav {
       grid-template-columns: minmax(0, 1fr);
       gap: 1rem;
