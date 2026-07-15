@@ -1,0 +1,122 @@
+---
+import ApiEntry, { type EntryData } from "../components/ApiEntry.astro";
+import Glossary from "../components/Glossary.astro";
+import ReferenceLayout from "../layouts/ReferenceLayout.astro";
+import { examples2d, groups2d } from "../examples/2d/index";
+import manifest from "../../generated/manifest.json";
+
+// The manifest is written by the render step (pnpm run render) from the same
+// records — an id missing here means the page and registry are out of sync.
+const generated = new Map<string, EntryData>(
+  manifest.entries.map((entry) => [entry.id, entry as EntryData]),
+);
+
+const entryFor = (id: string): EntryData => {
+  const entry = generated.get(id);
+  if (!entry) {
+    throw new Error(
+      `[2d] example "${id}" is not in generated/manifest.json — run \`pnpm run render\``,
+    );
+  }
+  return entry;
+};
+
+const slug = (group: string) =>
+  group
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+const sectioned = groups2d.map((group) => ({
+  id: slug(group),
+  title: group,
+  entries: examples2d.filter((e) => e.group === group).map((e) => entryFor(e.id)),
+}));
+
+const sections = [
+  ...sectioned.map(({ id, title }) => ({ id, title })),
+  { id: "to-3d", title: "Next: make it 3D" },
+  { id: "glossary", title: "Glossary" },
+];
+---
+
+<ReferenceLayout
+  title="2D quick reference"
+  description="Sketching with replicad: the draw() pen, canned shapes, and Drawing operations — every entry with its entry point, an example, and a rendered visual."
+  sections={sections}
+>
+  <p class="intro">
+    Everything on this page happens in 2D — you finish with a
+    <strong>Drawing</strong>. Entries are ordered most-common first. When your
+    Drawing is done, <a href="/3d#bridge">lift it onto a plane</a> to go 3D.
+  </p>
+
+  {
+    sectioned.map((section) => (
+      <section aria-labelledby={section.id}>
+        <h2 id={section.id}>{section.title}</h2>
+        {section.entries.map((entry) => (
+          <ApiEntry entry={entry} />
+        ))}
+      </section>
+    ))
+  }
+
+  <p class="more">
+    Also in the 2D toolbox, rarely needed: <code>drawPointsInterpolation</code>,
+    <code>punchHole</code>, <code>serialize</code>/<code>deserializeDrawing</code>,
+    the <code>toSVG</code> family, and the <code>lib2d</code> point utilities —
+    see the <a href="https://replicad.xyz/docs/api/">full API reference</a>.
+  </p>
+
+  <section id="to-3d" class="bridge-band" aria-labelledby="to-3d-title">
+    <h2 id="to-3d-title">Next: make it 3D</h2>
+    <p>
+      A finished Drawing becomes a <strong>Sketch</strong> the moment you lift it
+      onto a plane — that Sketch is what you extrude, revolve, or loft.
+    </p>
+    <a class="bridge-link" href="/3d#bridge">
+      2D → 3D bridge: <code>drawing.sketchOnPlane("XZ")</code> →
+    </a>
+  </section>
+
+  <section id="glossary" aria-labelledby="glossary-title">
+    <h2 id="glossary-title">Glossary</h2>
+    <Glossary />
+  </section>
+</ReferenceLayout>
+
+<style>
+  .intro {
+    max-width: 44rem;
+    font-size: 1.05rem;
+  }
+  section h2 {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.35rem;
+    margin-top: 2.5rem;
+  }
+  .more {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  .bridge-band {
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 0.25rem 1.25rem 1.25rem;
+    margin-top: 2.5rem;
+  }
+  .bridge-band h2 {
+    border-bottom: none;
+    margin-top: 1rem;
+  }
+  .bridge-link {
+    display: inline-block;
+    font-weight: 600;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .bridge-link:hover {
+    text-decoration: underline;
+  }
+</style>
