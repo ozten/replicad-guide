@@ -1,7 +1,7 @@
 ---
 title: "feat: Replicad quick-reference & API guide (static, source-driven)"
 type: feat
-status: active
+status: completed
 date: 2026-07-14
 deepened: 2026-07-14
 origin: docs/brainstorms/2026-07-14-replicad-quick-reference-requirements.md
@@ -392,7 +392,7 @@ graph TB
 
 ---
 
-- [ ] **Unit 8: Full API reference via TypeDoc JSON (v1.1)**
+- [x] **Unit 8: Full API reference via TypeDoc JSON (v1.1)**
 
 **Goal:** Generate the full reference from source: every public export with signature + description on scannable, concept-grouped pages; geometry entries get example+visual; trivial utilities and legacy `Sketcher` get signature+doc. Also lands the v1.1 scale hardening.
 
